@@ -53,7 +53,7 @@ class SpecBase:
 # * asdict_fn: Function which serialize the object to dict/value
 _REGISTER: Dict[Type[_T], Callable[[_T], Any]] = {
     SpecBase: lambda x: x.asdict(),
-    datetime.datetime: lambda x: x.isoformat(),  # pytype: disable=not-supported-yet
+    datetime.datetime: lambda x: x.isoformat(),  # pytype: disable=invalid-annotation
 }
 
 
