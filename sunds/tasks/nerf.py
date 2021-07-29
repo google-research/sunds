@@ -17,7 +17,6 @@
 import dataclasses
 from typing import Any, Callable, Optional
 
-from absl import logging
 from sunds import core
 from sunds import utils
 from sunds.core import specs
@@ -182,8 +181,6 @@ class Nerf(core.FrameTask):
 
       # Remove (H, W, ...) part of shape.
       ds = ds.unbatch().unbatch()
-
-      logging.info('element spec: %s', ds.element_spec)
 
       # Drop invalid rays (direction == 0).
       if self.remove_invalid_rays and self.yield_individual_camera:
