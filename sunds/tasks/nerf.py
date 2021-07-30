@@ -60,6 +60,9 @@ class Nerf(core.FrameTask):
       'ray_origins': tf.Tensor(shape=(*batch_shape, 3), dtype=tf.float32),
       'ray_directions': tf.Tensor(shape=(*batch_shape, 3), dtype=tf.float32),
       'color_image': tf.Tensor(shape=(*batch_shape, 3), dtype=tf.uint8),
+      'scene_name': tf.Tensor(shape=(*batch_shape, 1), dtype=tf.string),
+      'frame_name': tf.Tensor(shape=(*batch_shape, 1), dtype=tf.string),
+      'camera_name': tf.Tensor(shape=(*batch_shape, 1), dtype=tf.string),
       ...,
   }
   ```
@@ -73,7 +76,11 @@ class Nerf(core.FrameTask):
 
   * If the dataset has multiple cameras, each camera will be yielded
     individually, unless `yield_individual_camera=False`.
-  * `ray_origins`/`ray_directions` are automatically computed if not present
+  * `ray_origins`/`ray_directions` are automatically computed if not present.
+  * `camera_name` feature is only available when `yield_individual_camera=True`
+    (default).
+  * `ray_directions` may contain invalid values (all-zeros) when
+    `keep_as_image=True`.
 
   Attributes:
     keep_as_image: Whether to keep the image dimension.
@@ -92,6 +99,10 @@ class Nerf(core.FrameTask):
     additional_frame_specs: Additional features specs to include. Those features
       will be forwarded as-is (without any transformation). Should not contain
       any camera fields.
+    center_example: Whether or not to center each example.
+      Centering will be performed based on the axis aligned bounding box of
+      the target view frustrum and the origins of the input views.
+    far_plane_for_centering: far plane to use when calculating frustrums.
   """
   keep_as_image: bool = True
   normalize_rays: bool = False
@@ -100,6 +111,8 @@ class Nerf(core.FrameTask):
   additional_camera_specs: FeatureSpecs = dataclasses.field(
       default_factory=dict)
   additional_frame_specs: FeatureSpecs = dataclasses.field(default_factory=dict)
+  center_example: bool = False
+  far_plane_for_centering: float = 30.0  # meters for non-normalized Streetview
 
   def __post_init__(self):
     # Normalize additional_specs
@@ -169,15 +182,26 @@ class Nerf(core.FrameTask):
           num_parallel_calls=tf.data.AUTOTUNE,
       )
 
+    # TODO(tutmann): Consider moving this down below keep_as_image.
+    # We then would normalize only the rays that we actually query.
+    # This would have an additional free data augmentation effect on things.
+    if self.center_example:
+      ds = ds.map(
+          _center_example(  # pylint: disable=no-value-for-parameter
+              target_camera_name='target',
+              far_plane_for_centering=self.far_plane_for_centering),
+          num_parallel_calls=tf.data.AUTOTUNE,
+      )
+
     # Eventually flatten the images. Batch size: `(h, w)` -> `()`
     if not self.keep_as_image:
       if self.additional_frame_specs:
         raise ValueError(
             'Additional frame specs not compatible with keep_as_image=False')
-      # Static fields (scene_name, frame_name,... can't be batched).
-      #
-      # TODO(duckworthd): Copy values from static fields to all rays.
-      ds = ds.map(_remove_static_fields)
+      # Copy static fields (scene_name, frame_name, ...) to each ray.
+      ds = ds.map(_clone_static_fields(  # pylint: disable=no-value-for-parameter
+          yield_individual_camera=self.yield_individual_camera,
+      ))
 
       # Remove (H, W, ...) part of shape.
       ds = ds.unbatch().unbatch()
@@ -399,10 +423,38 @@ def _ds_merge_dict(
   return ds
 
 
-def _remove_static_fields(ex: TensorDict) -> TensorDict:
-  """Remove static fields, as not supported by batching."""
-  for key in ['scene_name', 'frame_name', 'camera_name']:
-    ex.pop(key, None)
+@utils.map_fn
+def _clone_static_fields(ex: TensorDict,
+                         *,
+                         yield_individual_camera: bool) -> TensorDict:
+  """Clone static fields to each ray.
+
+  Args:
+    ex: A single-camera or multi-camera example. Must have the following
+      fields -- frame_name, scene_name.
+    yield_individual_camera: If True, field camera_name is also required.
+
+  Returns:
+    Modified version of `ex` with `*_name` features cloned once per pixel.
+  """
+  # Identify batch shape.
+  if yield_individual_camera:
+    camera_ex = ex
+  else:
+    camera_ex = next(iter(ex['cameras'].values()))
+  batch_shape: tf.TensorShape = camera_ex['color_image'].shape[0:-1]
+
+  # TODO(duckworthd): Duplicate ALL static fields, including those specified
+  # in additional_frame_specs.
+  def _clone(v):
+    return tf.fill(batch_shape, v)
+
+  # Clone individual fields.
+  ex['scene_name'] = _clone(ex['scene_name'])
+  ex['frame_name'] = _clone(ex['frame_name'])
+  if yield_individual_camera:
+    ex['camera_name'] = _clone(ex['camera_name'])
+
   return ex
 
 
@@ -416,3 +468,49 @@ def _normalize_additional_specs(spec: FeatureSpecs) -> FeatureSpecs:
 def _has_valid_ray_directions(ex: TensorDict) -> TensorDict:
   directions = ex['ray_directions']
   return tf.logical_not(tf.reduce_all(directions == 0.))
+
+
+@utils.map_fn
+def _center_example(ex: TensorDict,
+                    *,
+                    target_camera_name: str,
+                    far_plane_for_centering: float) -> TensorDict:
+  """Centers the example.
+
+  Centering will be performed based on the axis aligned bounding box of
+  the target view frustrum and the origins of the input views.
+
+  Args:
+    ex: Original example
+    target_camera_name: name of the target camera.
+    far_plane_for_centering: far plane to use when calculating frustrums.
+
+  Returns:
+    The `ex` with all camera origins centered.
+  """
+  points = []
+  if target_camera_name not in ex['cameras']:
+    raise ValueError(f'Invalid target_camera_name: {target_camera_name}. '
+                     f'Valid name are: {list(ex["cameras"].keys())}')
+  for name, camera in ex['cameras'].items():
+    origins = tf.reshape(camera['ray_origins'], (-1, 3))
+    directions = tf.reshape(camera['ray_directions'], (-1, 3))
+
+    # Filter invalid rays.
+    valid_directions = tf.reduce_any(tf.math.not_equal(directions, 0.), axis=-1)
+    origins = tf.boolean_mask(origins, valid_directions)
+    directions = tf.boolean_mask(directions, valid_directions)
+
+    points.append(origins)
+    if name == target_camera_name:
+      points.append(origins + directions * far_plane_for_centering)
+  points = tf.concat(points, axis=0)
+  assert len(points.shape) == 2
+  points_min = tf.reduce_min(points, axis=0)
+  points_max = tf.reduce_max(points, axis=0)
+  bbox_size = points_max - points_min
+  center = points_min + bbox_size / 2
+
+  for camera in ex['cameras'].values():
+    camera['ray_origins'] -= center
+  return ex

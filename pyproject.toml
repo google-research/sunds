@@ -1,0 +1,31 @@
+[tool.poetry]
+name = "sunds"
+version = "0.1.0"
+description = "Datasets for scene understanding"
+authors = ["Sunds team <sunds@google.com>"]
+license = "Apache-2.0"
+homepage = "https://github.com/google-research/sunds"
+repository = "https://github.com/google-research/sunds"
+keywords = ["datasets", "scene-understanding"]
+classifiers = [
+    # Note: Python and license automatically added
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[tool.poetry.dependencies]
+python = ">=3.7"
+absl = "*"
+numpy = ">=1.17"
+# We do not explicitly add tensorflow as deps to allow users
+# choose between `tensorflow` / `tf-nightly`
+# tensorflow = ">=2.4"
+tensorflow_datasets = ">=4.4"
+tqdm = "*"
+typing_extensions = "*"
+
+[tool.poetry.dev-dependencies]
+pytest = ">=3.4"
+
+[build-system]
+requires = ["poetry-core>=1.1.0"]
+build-backend = "poetry.core.masonry.api"

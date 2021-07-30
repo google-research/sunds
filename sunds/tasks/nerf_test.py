@@ -50,6 +50,9 @@ def test_nerf_flatten_img(lego_builder: sunds.core.DatasetBuilder):
       'ray_directions': tf.TensorSpec(shape=(3,), dtype=tf.float32),
       'ray_origins': tf.TensorSpec(shape=(3,), dtype=tf.float32),
       'color_image': tf.TensorSpec(shape=(3,), dtype=tf.uint8),
+      'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+      'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+      'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
   }
   list(ds.take(4))  # Pipeline can be executed
 
@@ -222,3 +225,69 @@ def test_all_flags(
         ),
     )
     list(ds.take(2))  # Pipeline can be executed
+
+
+def test_center_example():
+  ex = {
+      'cameras': {
+          'target': {
+              'ray_origins':
+                  tf.constant([
+                      [0, 3, 7],
+                      # The second ray has an invalid direction, so its origin
+                      # should be ignored for the center calculation.
+                      [1000, 1000, 1000],
+                  ], dtype=tf.float32),
+              'ray_directions':
+                  tf.constant([
+                      [1, 0, 0],
+                      [0, 0, 0],
+                  ], dtype=tf.float32),
+              },
+          'input0': {
+              'ray_origins':
+                  tf.constant([
+                      [0, 3, 7],
+                  ], dtype=tf.float32),
+              'ray_directions':
+                  tf.constant([
+                      # This ray it pointing upwards, but since it is not the
+                      # target camera, the frustrum will not be computed.
+                      [0, 1, 0],
+                  ], dtype=tf.float32),
+          },
+      },
+  }
+
+  centered_ex = sunds.tasks.nerf._center_example(ex,
+                                                 target_camera_name='target',
+                                                 far_plane_for_centering=10)
+
+  expected_ex = {
+      'cameras': {
+          'target': {
+              'ray_origins':
+                  tf.constant([
+                      [-5, 0, 0],
+                      [995, 997, 993],
+                  ], dtype=tf.float32),
+              'ray_directions':
+                  tf.constant([
+                      [1, 0, 0],
+                      [0, 0, 0],
+                  ], dtype=tf.float32),
+              },
+          'input0': {
+              'ray_origins':
+                  tf.constant([
+                      [-5, 0, 0],
+                  ], dtype=tf.float32),
+              'ray_directions':
+                  tf.constant([
+                      [0, 1, 0],
+                  ], dtype=tf.float32),
+          },
+      },
+  }
+
+  tf.nest.map_structure(tf.debugging.assert_near, centered_ex, expected_ex)
