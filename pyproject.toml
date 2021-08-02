@@ -13,8 +13,8 @@ classifiers = [
 ]
 
 [tool.poetry.dependencies]
-python = ">=3.7"
-absl = "*"
+python = "^3.7"
+absl-py = "*"
 numpy = ">=1.17"
 # We do not explicitly add tensorflow as deps to allow users
 # choose between `tensorflow` / `tf-nightly`
@@ -25,6 +25,9 @@ typing_extensions = "*"
 
 [tool.poetry.dev-dependencies]
 pytest = ">=3.4"
+pytest-xdist = "*"
+# Optional deps required for specific datasets
+pillow = "*"
 
 [build-system]
 requires = ["poetry-core>=1.1.0"]

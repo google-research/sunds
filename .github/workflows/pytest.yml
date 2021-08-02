@@ -1,0 +1,33 @@
+name: Run unittests
+
+on: push
+
+jobs:
+  pytest-job:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+    - uses: styfle/cancel-workflow-action@0.9.1
+      with:
+        access_token: ${{ github.token }}
+
+    - uses: actions/checkout@v2
+
+    # Install deps
+    - uses: actions/setup-python@v2
+      with:
+        python-version: 3.7
+    - run: python -m pip install poetry
+    - run: poetry install
+    # Tensorflow has to be installed separately (to allow tf-nightly)
+    - run: poetry run pip install tensorflow
+
+    # Run tests
+    # As pytest globally collect tests, we run datasets test in another process
+    # so the datasets are not auto-registered on import.
+    - name: Run core tests
+      run: poetry run pytest -vv -n auto --ignore sunds/datasets/
+
+    - name: Run datasets tests
+      run: poetry run pytest -vv -n auto sunds/datasets/
