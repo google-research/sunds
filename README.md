@@ -1,7 +1,7 @@
 # Scene understanding datasets
 
 [![Unittests](https://github.com/google-research/sunds/actions/workflows/pytest.yml/badge.svg)](https://github.com/google-research/sunds/actions/workflows/pytest.yml)
-[![PyPI version](https://badge.fury.io/py/tensorflow-datasets.svg)](https://badge.fury.io/py/tensorflow-datasets)
+[![PyPI version](https://badge.fury.io/py/sunds.svg)](https://badge.fury.io/py/sunds)
 
 SunDs is a collection of ready-to-use datasets for scene understanding tasks (3d
 object detection, semantic segmentation, nerf rendering,...). It provides:
