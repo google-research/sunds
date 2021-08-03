@@ -18,4 +18,9 @@ for ex in ds:
   ex['ray_origin']
 ```
 
+To use sunds, see the documentation:
+
+*  [Intro guide](https://github.com/google-research/sunds/blob/master/docs/intro.md)
+*  [Nerf guide](https://github.com/google-research/sunds/blob/master/docs/nerf.md)
+
 *This is not an official Google product.*
