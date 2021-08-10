@@ -113,6 +113,7 @@ class Nerf(core.FrameTask):
   additional_frame_specs: FeatureSpecs = dataclasses.field(default_factory=dict)
   center_example: bool = False
   far_plane_for_centering: float = 30.0  # meters for non-normalized Streetview
+  centering_jitter: float = 3.0  # translation jitter to apply while centering.
 
   def __post_init__(self):
     # Normalize additional_specs
@@ -188,8 +189,8 @@ class Nerf(core.FrameTask):
     if self.center_example:
       ds = ds.map(
           _center_example(  # pylint: disable=no-value-for-parameter
-              target_camera_name='target',
-              far_plane_for_centering=self.far_plane_for_centering),
+              far_plane_for_centering=self.far_plane_for_centering,
+              jitter=self.centering_jitter),
           num_parallel_calls=tf.data.AUTOTUNE,
       )
 
@@ -473,8 +474,8 @@ def _has_valid_ray_directions(ex: TensorDict) -> TensorDict:
 @utils.map_fn
 def _center_example(ex: TensorDict,
                     *,
-                    target_camera_name: str,
-                    far_plane_for_centering: float) -> TensorDict:
+                    far_plane_for_centering: float,
+                    jitter: float) -> TensorDict:
   """Centers the example.
 
   Centering will be performed based on the axis aligned bounding box of
@@ -482,16 +483,12 @@ def _center_example(ex: TensorDict,
 
   Args:
     ex: Original example
-    target_camera_name: name of the target camera.
     far_plane_for_centering: far plane to use when calculating frustrums.
 
   Returns:
     The `ex` with all camera origins centered.
   """
   points = []
-  if target_camera_name not in ex['cameras']:
-    raise ValueError(f'Invalid target_camera_name: {target_camera_name}. '
-                     f'Valid name are: {list(ex["cameras"].keys())}')
   for name, camera in ex['cameras'].items():
     origins = tf.reshape(camera['ray_origins'], (-1, 3))
     directions = tf.reshape(camera['ray_directions'], (-1, 3))
@@ -502,14 +499,14 @@ def _center_example(ex: TensorDict,
     directions = tf.boolean_mask(directions, valid_directions)
 
     points.append(origins)
-    if name == target_camera_name:
-      points.append(origins + directions * far_plane_for_centering)
+    points.append(origins + directions * far_plane_for_centering)
   points = tf.concat(points, axis=0)
   assert len(points.shape) == 2
   points_min = tf.reduce_min(points, axis=0)
   points_max = tf.reduce_max(points, axis=0)
   bbox_size = points_max - points_min
   center = points_min + bbox_size / 2
+  center += tf.random.normal(shape=center.shape, stddev=jitter)
 
   for camera in ex['cameras'].values():
     camera['ray_origins'] -= center
