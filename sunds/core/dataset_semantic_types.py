@@ -12,9 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-"""Core API."""
+"""Helper custom types."""
 
-from sunds.core.dataset_builder import DatasetBuilder
-from sunds.core.dataset_semantic_types import MetricGroupings
-from sunds.core.tasks import FrameTask
-from sunds.core.tasks import Task
+import enum
+
+
+class MetricGroupings(enum.Enum):
+  """Semantic metric groupings."""
+  MOST_IMPORTANT = "most_important"
+  IMPORTANT = "important"
+  MOVERS = "movers"
+  GROUND = "ground"
+  SMALL = "small"
+  RARE = "rare"
+  ATOMIC_MAPS = "atomic_maps"
+  IMAGE_ONLY = "image_only"
+  LIDAR_ONLY = "lidar_only"
+
+  @classmethod
+  def has_value(cls, value):
+    return value in cls._value2member_map_.values()
+
+  @classmethod
+  def lidar_only(cls, value):
+    return value == cls.LIDAR_ONLY
