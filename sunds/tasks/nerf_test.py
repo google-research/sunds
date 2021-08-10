@@ -251,8 +251,6 @@ def test_center_example():
                   ], dtype=tf.float32),
               'ray_directions':
                   tf.constant([
-                      # This ray it pointing upwards, but since it is not the
-                      # target camera, the frustrum will not be computed.
                       [0, 1, 0],
                   ], dtype=tf.float32),
           },
@@ -260,16 +258,16 @@ def test_center_example():
   }
 
   centered_ex = sunds.tasks.nerf._center_example(ex,
-                                                 target_camera_name='target',
-                                                 far_plane_for_centering=10)
+                                                 far_plane_for_centering=10,
+                                                 jitter=0)
 
   expected_ex = {
       'cameras': {
           'target': {
               'ray_origins':
                   tf.constant([
-                      [-5, 0, 0],
-                      [995, 997, 993],
+                      [-5, -5, 0],
+                      [995, 992, 993],
                   ], dtype=tf.float32),
               'ray_directions':
                   tf.constant([
@@ -280,7 +278,7 @@ def test_center_example():
           'input0': {
               'ray_origins':
                   tf.constant([
-                      [-5, 0, 0],
+                      [-5, -5, 0],
                   ], dtype=tf.float32),
               'ray_directions':
                   tf.constant([
