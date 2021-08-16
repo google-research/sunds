@@ -15,7 +15,7 @@
 """Nerf task."""
 
 import dataclasses
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Union
 
 from sunds import core
 from sunds import utils
@@ -47,6 +47,23 @@ def _camera_specs(
   # Fetch additional keys on demand
   spec.update(additional_camera_specs)
   return spec
+
+
+@dataclasses.dataclass(frozen=True)
+class CenterNormalizeParams:
+  """Normalization params for centering.
+
+  If passed to `Nerf(normalize_rays=)`, each rays origin will be shifted
+  by a center value.
+  Centering will be performed based on the axis aligned bounding box of the
+  target camera frustrum and the origins of the other camera.
+
+  Attributes:
+    far_plane: far plane to use when calculating frustrums.
+    jitter: Translational jitter to apply after centering
+  """
+  far_plane: float
+  jitter: float = 3.0
 
 
 @dataclasses.dataclass(frozen=True)
@@ -86,7 +103,7 @@ class Nerf(core.FrameTask):
     keep_as_image: Whether to keep the image dimension.
     normalize_rays: If True, the scene is scaled such as all objects in the
       scenes are contained in a `[-1, 1]` box. Ray directions are also
-      normalized.
+      normalized. Can also be a configurable dataclass for more options.
     yield_individual_camera: If True (default), each camera within a frame is
       yield individually. Otherwise, each example contains all cameras (
       `'cameras': {'camera0': {'ray_origins': ...}, 'camera1': ...}`).
@@ -99,21 +116,14 @@ class Nerf(core.FrameTask):
     additional_frame_specs: Additional features specs to include. Those features
       will be forwarded as-is (without any transformation). Should not contain
       any camera fields.
-    center_example: Whether or not to center each example.
-      Centering will be performed based on the axis aligned bounding box of
-      the target view frustrum and the origins of the input views.
-    far_plane_for_centering: far plane to use when calculating frustrums.
   """
   keep_as_image: bool = True
-  normalize_rays: bool = False
+  normalize_rays: Union[bool, CenterNormalizeParams] = False
   yield_individual_camera: bool = True
   remove_invalid_rays: bool = True
   additional_camera_specs: FeatureSpecs = dataclasses.field(
       default_factory=dict)
   additional_frame_specs: FeatureSpecs = dataclasses.field(default_factory=dict)
-  center_example: bool = False
-  far_plane_for_centering: float = 30.0  # meters for non-normalized Streetview
-  centering_jitter: float = 3.0  # translational jitter to apply after centering
 
   def __post_init__(self):
     # Normalize additional_specs
@@ -171,28 +181,34 @@ class Nerf(core.FrameTask):
     )
 
     # Eventually normalize the rays
-    if self.normalize_rays:
-      scene_boundaries = _get_scene_boundaries(self.scene_builder, split=split)
-      normalize_fn = _normalize_rays(scene_boundaries=scene_boundaries)  # pylint: disable=no-value-for-parameter
-      normalize_fn = _apply_to_all_cameras(  # pylint: disable=no-value-for-parameter
-          fn=normalize_fn,
-          yield_individual_camera=self.yield_individual_camera,
-      )
-      ds = ds.map(
-          normalize_fn,
-          num_parallel_calls=tf.data.AUTOTUNE,
-      )
-
-    # TODO(tutmann): Consider moving this down below keep_as_image.
-    # We then would normalize only the rays that we actually query.
-    # This would have an additional free data augmentation effect on things.
-    if self.center_example:
+    if isinstance(self.normalize_rays, bool):
+      if self.normalize_rays:
+        scene_boundaries = _get_scene_boundaries(
+            self.scene_builder, split=split)
+        normalize_fn = _normalize_rays(scene_boundaries=scene_boundaries)  # pylint: disable=no-value-for-parameter
+        normalize_fn = _apply_to_all_cameras(  # pylint: disable=no-value-for-parameter
+            fn=normalize_fn,
+            yield_individual_camera=self.yield_individual_camera,
+        )
+        ds = ds.map(
+            normalize_fn,
+            num_parallel_calls=tf.data.AUTOTUNE,
+        )
+    elif isinstance(self.normalize_rays, CenterNormalizeParams):
+      if self.yield_individual_camera:
+        raise ValueError('centering require yield_individual_camera=False')
+      # TODO(tutmann): Consider moving this down below keep_as_image.
+      # We then would normalize only the rays that we actually query.
+      # This would have an additional free data augmentation effect on things.
       ds = ds.map(
           _center_example(  # pylint: disable=no-value-for-parameter
-              far_plane_for_centering=self.far_plane_for_centering,
-              jitter=self.centering_jitter),
+              far_plane_for_centering=self.normalize_rays.far_plane,
+              jitter=self.normalize_rays.jitter
+          ),
           num_parallel_calls=tf.data.AUTOTUNE,
       )
+    else:
+      raise TypeError(f'Invalid `normalize_rays`: {self.normalize_rays!r}')
 
     # Eventually flatten the images. Batch size: `(h, w)` -> `()`
     if not self.keep_as_image:
@@ -200,9 +216,9 @@ class Nerf(core.FrameTask):
         raise ValueError(
             'Additional frame specs not compatible with keep_as_image=False')
       # Copy static fields (scene_name, frame_name, ...) to each ray.
-      ds = ds.map(_clone_static_fields(  # pylint: disable=no-value-for-parameter
-          yield_individual_camera=self.yield_individual_camera,
-      ))
+      ds = ds.map(
+          _clone_static_fields(  # pylint: disable=no-value-for-parameter
+              yield_individual_camera=self.yield_individual_camera,))
 
       # Remove (H, W, ...) part of shape.
       ds = ds.unbatch().unbatch()
@@ -425,14 +441,16 @@ def _ds_merge_dict(
 
 
 @utils.map_fn
-def _clone_static_fields(ex: TensorDict,
-                         *,
-                         yield_individual_camera: bool) -> TensorDict:
+def _clone_static_fields(
+    ex: TensorDict,
+    *,
+    yield_individual_camera: bool,
+) -> TensorDict:
   """Clone static fields to each ray.
 
   Args:
-    ex: A single-camera or multi-camera example. Must have the following
-      fields -- frame_name, scene_name.
+    ex: A single-camera or multi-camera example. Must have the following fields
+      -- frame_name, scene_name.
     yield_individual_camera: If True, field camera_name is also required.
 
   Returns:
@@ -472,10 +490,12 @@ def _has_valid_ray_directions(ex: TensorDict) -> TensorDict:
 
 
 @utils.map_fn
-def _center_example(ex: TensorDict,
-                    *,
-                    far_plane_for_centering: float,
-                    jitter: float) -> TensorDict:
+def _center_example(
+    ex: TensorDict,
+    *,
+    far_plane_for_centering: float,
+    jitter: float,
+) -> TensorDict:
   """Centers the example.
 
   Centering will be performed based on the axis aligned bounding box of

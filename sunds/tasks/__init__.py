@@ -14,4 +14,5 @@
 
 """Available tasks."""
 
+from sunds.tasks.nerf import CenterNormalizeParams
 from sunds.tasks.nerf import Nerf
