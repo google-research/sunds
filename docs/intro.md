@@ -1,5 +1,16 @@
 # Getting started
 
+## Overview
+
+Sunds is a collection of datasets for scene understanding tasks. Each dataset
+contain information about one or multiple scenes. This can includes rgb images,
+lidar points cloud, depth map, semantic maps,...
+
+When loading a dataset, the user select the required task which will
+automatically select the subsbset of features required for the task.
+
+![overview](https://docs.google.com/drawings/d/1pSBIzbU2ZGRYq-w3wIlYsMgNOJrtEWrpXqyPkUJFpVs/export/png)
+
 ## Load a dataset
 
 SunDs API is similar to [TFDS](https://www.tensorflow.org/datasets/overview)
