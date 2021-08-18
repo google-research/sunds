@@ -89,6 +89,14 @@ Tasks can be further customized during construction. In the above example,
 `keep_img_dim=False` control whether to return examples batched at the pixel or
 the image level.
 
+### Using existing tasks
+
+The easiest way to get started training a model is to use one of the existing
+`sunds.task`. Look at the documentation for specific task:
+
+*   [sunds.task.Nerf](nerf.md): To extract ray origins/positions as well as
+    applying various normalizations.
+
 ### Creating a task
 
 There are 2 ways of creating a Task.
