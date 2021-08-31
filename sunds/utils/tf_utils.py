@@ -120,7 +120,8 @@ def random_choice(
     *,
     size: Union[int, Shape] = None,
     replace: bool = True,
-) -> tf.Tensor:
+    return_complement: bool = False,
+) -> Union[tf.Tensor, Tuple[tf.Tensor, tf.Tensor]]:
   """TF implementation of `np.random.Generator.choice`.
 
   Args:
@@ -129,10 +130,25 @@ def random_choice(
     size: Number of sample to select (can be `int` or output shape)
     replace: Whether the sample is with or without replacement. Default is
       `True`, meaning that `a` value of a can be selected multiple times.
+    return_complement: If True, the complement of the selection will be returned
+      as well. Only supported for integer `a` and `size`, and when replace is
+      False.
 
   Returns:
     samples: The choices sampled from a.
+    If return_complement: complementary_samples: Values that were not chosen in
+      samples.
   """
+  if return_complement:
+    if not isinstance(a, int):
+      raise ValueError('`return_complement` is only supported for integer `a`.')
+    if not isinstance(size, int):
+      raise ValueError(
+          '`return_complement` is only supported for integer `size`.')
+    if replace:
+      raise ValueError(
+          '`return_complement` is not supported when `replace` is True.')
+  original_a = a
   if isinstance(a, int):  # Normalize int
     a = tf.range(a)
   a = tf.convert_to_tensor(a)
@@ -154,10 +170,17 @@ def random_choice(
 
   indices = tf.range(num_values)
   indices = tf.random.shuffle(indices)
-  indices = indices[:num_samples]
+  selected_indices = indices[:num_samples]
 
-  a = tf.gather(a, indices)
-  return tf.reshape(a, shape)
+  result = tf.reshape(tf.gather(a, selected_indices), shape)
+  if not return_complement:
+    return result
+
+  complement_shape = (original_a - size,)
+  remaining_indices = indices[:num_samples]
+  complementary_result = tf.reshape(
+      tf.gather(a, remaining_indices), complement_shape)
+  return result, complementary_result
 
 
 def _to_array(x: _MinMaxValue) -> _MinMaxValue:

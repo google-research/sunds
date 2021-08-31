@@ -128,6 +128,18 @@ def test_random_choice():
   assert not set(y) - set(range(100))
   assert len(set(y)) == 50
 
+  # Test with `int` & complement
+  y, y_c = utils.random_choice(
+      100, size=45, replace=False, return_complement=True)
+  y = y.numpy()
+  y_c = y_c.numpy()
+  assert y.shape == (45,)
+  assert y_c.shape == (55,)
+  assert set(y).union(set(y_c)) == set(range(100))
+  assert set(y).isdisjoint(set(y_c))
+  assert not set(y) - set(range(100))
+  assert not set(y_c) - set(range(100))
+
   # Test with shape
   y = utils.random_choice(list(range(10)), size=(2, 3), replace=False).numpy()
   assert y.shape == (2, 3)
