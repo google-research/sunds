@@ -123,7 +123,7 @@ class FrameTask(Task):
     frame_specs = self.frame_specs
     if callable(frame_specs):
       raise ValueError(
-          f'Invalid frame_specs={frame_specs!r}. Did you forgot `@property` ?')
+          f'Invalid frame_specs={frame_specs!r}. Did you forget `@property` ?')
     if frame_specs is not None:
       decoders = tfds.decode.PartialDecoding(frame_specs, decoders=decoders)
 
