@@ -26,8 +26,10 @@ def is_notebook() -> bool:
   # Use sys.module as we do not want to trigger an import (slow)
   IPython = sys.modules.get('IPython')  # pylint: disable=invalid-name
   # Check whether we're not running in a IPython terminal
-  if IPython and 'IPKernelApp' in IPython.get_ipython().config:
-    return True
+  if IPython:
+    get_ipython_result = IPython.get_ipython()
+    if get_ipython_result and 'IPKernelApp' in get_ipython_result.config:
+      return True
   return False
 
 
