@@ -86,7 +86,7 @@ class NormalImage(tfds.features.Image):
   @classmethod
   def from_json_content(cls, value: tfds.typing.Json) -> 'NormalImage':
     return cls(
-        shape=value['shape'],
+        shape=value['shape'],  # pytype: disable=wrong-arg-types
     )
 
   def to_json_content(self) -> tfds.typing.Json:

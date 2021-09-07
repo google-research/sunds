@@ -118,7 +118,7 @@ def _linear_interp_factors(
 def random_choice(
     a: Union[int, TensorLike],
     *,
-    size: Union[int, Shape] = None,
+    size: Union[None, int, Shape] = None,
     replace: bool = True,
 ) -> tf.Tensor:
   """TF implementation of `np.random.Generator.choice`.
