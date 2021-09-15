@@ -17,6 +17,10 @@
 from typing import Tuple
 
 from sunds.core import spec_dict
+# copybara: strip_begin
+# Import to expose `sunds.specs.geo2sst` publicly
+from sunds.core.google import geo2sst_specs as geo2sst  # pylint: disable=unused-import
+# copybara: strip_end
 from sunds.typing import Dim, FeatureSpecs, FeaturesOrBool, LabelOrFeaturesOrBool  # pylint: disable=g-multiple-import
 import tensorflow as tf
 import tensorflow_datasets as tfds
