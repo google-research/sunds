@@ -23,6 +23,7 @@ import sunds
 from sunds.tasks import boundaries_utils
 from sunds.typing import FeatureSpecs
 import tensorflow as tf
+import tensorflow_datasets as tfds
 
 
 def test_nerf(lego_builder: sunds.core.DatasetBuilder):
@@ -38,6 +39,16 @@ def test_nerf(lego_builder: sunds.core.DatasetBuilder):
       'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
   }
   list(ds)  # Pipeline can be executed
+
+
+def test_nerf_frame_only(lego_builder_frame_only: sunds.core.DatasetBuilder):
+  data_dir = lego_builder_frame_only.data_dir
+  builder = sunds.builder('nerf_synthetic/lego', data_dir=data_dir)
+  ds = builder.as_dataset(split='train', task=sunds.tasks.Nerf())
+  assert isinstance(ds, tf.data.Dataset)
+
+  with pytest.raises(tfds.core.DatasetNotFoundError):
+    _ = builder.scene_builder.info  # Loading scene raise error
 
 
 def test_nerf_flatten_img(lego_builder: sunds.core.DatasetBuilder):

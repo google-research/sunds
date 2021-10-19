@@ -52,3 +52,30 @@ def lego_builder(
     builder.download_and_prepare()
 
   yield builder
+
+
+@pytest.fixture(scope='session')
+def lego_builder_frame_only(
+    tmp_path_factory: pytest.TempPathFactory,
+) -> Iterator[sunds.core.DatasetBuilder]:
+  """Dummy nerf synthetic dataset pre-generated."""
+  # Could instead reuse `lego_builder` and copy the frame dir.
+
+  data_path = tmp_path_factory.mktemp('global_nerf_frame_only_data_dir')
+
+  dummy_path = sunds.utils.sunds_dir() / 'datasets/nerf_synthetic/dummy_data'
+
+  builder = sunds.builder(
+      'nerf_synthetic/lego',
+      data_dir=data_path,
+      use_code=True,
+  )
+
+  # Generate the dataset using the fake data
+  with mock.patch(
+      'tensorflow_datasets.download.DownloadManager.download_and_extract',
+      return_value=dummy_path,
+  ):
+    builder._frame_builder.download_and_prepare()  # pylint: disable=protected-access
+
+  yield builder

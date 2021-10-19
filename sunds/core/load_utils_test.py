@@ -63,12 +63,14 @@ def test_load(lego_data_dir: sunds.Path):  # pylint: disable=redefined-outer-nam
 
 def test_builder(lego_data_dir: sunds.Path):  # pylint: disable=redefined-outer-name
   builder = sunds.builder('nerf_synthetic/lego', data_dir=lego_data_dir)
-  # `use_code == False`, so builder should be read-only
-  assert isinstance(
-      builder._scene_builder, tfds.core.read_only_builder.ReadOnlyBuilder)
   ds = builder.as_dataset(split='train', task=DummyTask())
   assert isinstance(ds, tf.data.Dataset)
   assert 'scene_name' in ds.element_spec
+  # `use_code == False`, so builder should be read-only
+  assert isinstance(
+      builder.frame_builder._builder_instance,  # pytype: disable=attribute-error
+      tfds.core.read_only_builder.ReadOnlyBuilder,
+  )
 
 
 def test_frame_task(lego_builder: sunds.core.DatasetBuilder):
@@ -78,3 +80,16 @@ def test_frame_task(lego_builder: sunds.core.DatasetBuilder):
   assert ds.element_spec == {
       'scene_name': tf.TensorSpec(shape=(None,), dtype=tf.string)
   }
+
+
+def test_builder_frame_only(lego_builder_frame_only: sunds.core.DatasetBuilder):
+  data_dir = lego_builder_frame_only.data_dir
+  builder = sunds.builder('nerf_synthetic/lego', data_dir=data_dir)
+  ds = builder.as_dataset(split='train', task=DummyTask())
+  assert isinstance(ds, tf.data.Dataset)
+  assert 'scene_name' in ds.element_spec
+
+  assert not builder.scene_builder.loaded  # pytype: disable=attribute-error
+  assert builder.frame_builder.loaded  # pytype: disable=attribute-error
+  with pytest.raises(tfds.core.DatasetNotFoundError):
+    _ = builder.scene_builder.info  # Loading scene raise error

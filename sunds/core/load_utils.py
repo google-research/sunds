@@ -17,6 +17,7 @@
 For familiarity, those utils try to match the TFDS load API.
 """
 
+import functools
 from typing import Optional
 
 from sunds import utils
@@ -93,12 +94,20 @@ def builder(
   else:
     # Otherwise, datasets not registered. `tfds.builder` will restore the
     # last dataset found in `data_dir/`
-    scene_builder = tfds.builder(f'{builder_name}_scenes', **builder_kwargs)
-    frame_builder = tfds.builder(f'{builder_name}_frames', **builder_kwargs)
+    scene_builder = functools.partial(
+        tfds.builder,
+        f'{builder_name}_scenes',
+        **builder_kwargs,
+    )
+    frame_builder = functools.partial(
+        tfds.builder,
+        f'{builder_name}_frames',
+        **builder_kwargs,
+    )
 
   return dataset_builder.DatasetBuilder(
-      scene_builder=scene_builder,
-      frame_builder=frame_builder,
+      scene_builder=dataset_builder.LazyBuilder(scene_builder),
+      frame_builder=dataset_builder.LazyBuilder(frame_builder),
   )
 
 

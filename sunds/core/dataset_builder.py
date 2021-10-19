@@ -17,11 +17,52 @@
 Primitive operations to load a dataset specs.
 """
 
+import typing
+from typing import Callable, Union
+
 from sunds import utils
 from sunds.core import tasks as tasks_lib
 from sunds.typing import Split, Tree  # pylint: disable=g-multiple-import
 import tensorflow as tf
 import tensorflow_datasets as tfds
+
+_BuilderFactory = Callable[[], tfds.core.DatasetBuilder]
+
+
+class LazyBuilder:
+  """Lazy-DatasetBuilder.
+
+  Behave like `tfds.core.DatasetBuilder`, but is only loaded on the first
+  attribute call.
+  """
+
+  def __init__(
+      self,
+      builder_or_factory: Union[tfds.core.DatasetBuilder, _BuilderFactory],
+  ):
+    """Constructor."""
+    if isinstance(builder_or_factory, tfds.core.DatasetBuilder):
+      self._builder_instance = builder_or_factory
+    else:
+      self._builder_instance = None
+      self._factory: _BuilderFactory = builder_or_factory
+      if not callable(self._factory):
+        raise ValueError('Either builder or factory should be given.')
+
+  @property
+  def _builder(self) -> tfds.core.DatasetBuilder:
+    if self._builder_instance is None:
+      # Lazy-loading
+      self._builder_instance = self._factory()
+    return self._builder_instance
+
+  @property
+  def loaded(self) -> bool:
+    """Returns True if the builder has been loaded."""
+    return self._builder_instance is not None
+
+  def __getattr__(self, name: str):
+    return getattr(self._builder, name)
 
 
 class DatasetBuilder:
@@ -30,8 +71,8 @@ class DatasetBuilder:
   def __init__(
       self,
       *,
-      scene_builder: tfds.core.DatasetBuilder,
-      frame_builder: tfds.core.DatasetBuilder,
+      scene_builder: LazyBuilder,
+      frame_builder: LazyBuilder,
   ):
     """Constructor.
 
@@ -39,24 +80,15 @@ class DatasetBuilder:
       scene_builder: Dataset builder containing the scenes.
       frame_builder: Dataset builder containing the frames.
     """
-    # Ensure that scene and frame datasets match
-    if (
-        scene_builder.info.full_name.split('/')[1:]
-        != frame_builder.info.full_name.split('/')[1:]
-    ):
-      raise ValueError(
-          f'Incompatible {scene_builder.info.full_name} and '
-          f'{frame_builder.info.full_name}. Version and config should match.'
-      )
-
     self._scene_builder = scene_builder
     self._frame_builder = frame_builder
+    self._validate()
 
   def download_and_prepare(self, **kwargs):
     """Download and prepare the dataset."""
     # Is a no-op if the dataset has already been generated
-    self._scene_builder.download_and_prepare(**kwargs)
-    self._frame_builder.download_and_prepare(**kwargs)
+    self.scene_builder.download_and_prepare(**kwargs)
+    self.frame_builder.download_and_prepare(**kwargs)
 
   def as_dataset(
       self,
@@ -77,22 +109,36 @@ class DatasetBuilder:
       ds: The dataset
     """
     task = task.initialize(
-        scene_builder=self._scene_builder,
-        frame_builder=self._frame_builder,
+        scene_builder=self.scene_builder,
+        frame_builder=self.frame_builder,
     )
     return task.as_dataset(split=split, **kwargs)
 
   @property
   def scene_builder(self) -> tfds.core.DatasetBuilder:
     """`tfds.core.DatasetBuilder` builder containing the scenes."""
-    return self._scene_builder
+    self._validate()
+    return typing.cast(tfds.core.DatasetBuilder, self._scene_builder)
 
   @property
   def frame_builder(self) -> tfds.core.DatasetBuilder:
     """`tfds.core.DatasetBuilder` builder containing the frames."""
-    return self._frame_builder
+    self._validate()
+    return typing.cast(tfds.core.DatasetBuilder, self._frame_builder)
 
   @property
   def data_dir(self) -> utils.Path:
     """Root directory of the frame/scene builder."""
     return utils.Path(self._frame_builder._data_dir_root)  # pylint: disable=protected-access
+
+  def _validate(self) -> None:
+    # Only validate if the 2 builders have been loaded.
+    if not self._scene_builder.loaded or not self._frame_builder.loaded:
+      return
+    # Ensure that scene and frame datasets match
+    if (self._scene_builder.info.full_name.split('/')[1:] !=
+        self._frame_builder.info.full_name.split('/')[1:]):
+      raise ValueError(
+          f'Incompatible {self._scene_builder.info.full_name} and '
+          f'{self._frame_builder.info.full_name}. Version and config should '
+          'match.')
