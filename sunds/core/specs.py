@@ -94,6 +94,7 @@ def camera_spec(
     *,
     color_image: FeaturesOrBool = False,
     category_image: LabelOrFeaturesOrBool = False,
+    depth_image: FeaturesOrBool = False,
     camera_rays: FeaturesOrBool = False,
     img_shape: Tuple[Dim, Dim] = (None, None),
 ) -> FeatureSpecs:
@@ -110,6 +111,7 @@ def camera_spec(
   Args:
     color_image: Rgb color image is stored.
     category_image: Category segmentation label image.
+    depth_image: depth image is stored.
     camera_rays: The given camera specs.
     img_shape: The (h, w) image shape
 
@@ -135,6 +137,12 @@ def camera_spec(
       'category_image',
       category_image,
       spec_dict.labeled_image(shape=(*img_shape, 1)),
+  )
+  # Depth image.
+  spec.maybe_set(
+      'depth_image',
+      depth_image,
+      tfds.features.Image(shape=(*img_shape, 1), dtype=tf.float32),
   )
   # Camera rays
   spec.maybe_update(
