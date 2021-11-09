@@ -229,7 +229,7 @@ def aligned_box_3d_spec() -> tfds.features.FeaturesDict:
       # Minimum extent of an axis aligned box.
       'min_corner': tfds.features.Tensor(shape=(3,), dtype=tf.float32),
       # Maximum extent of an axis aligned box.
-      'max_corner': tfds.features.Tensor(shape=(3,), dtype=tf.float32),
+      'max_corner': tfds.features.Tensor(shape=(3,), dtype=tf.float32),  # pytype: disable=bad-return-type  # gen-stub-imports
   }
 
 
