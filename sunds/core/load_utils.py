@@ -33,7 +33,7 @@ def load(
     *,
     split: Tree[Split],
     data_dir: Optional[PathLike] = None,
-    task: tasks.Task,
+    task: Optional[tasks.Task] = None,
     # TODO(epot): Add arguments to match TFDS signature
 ) -> tf.data.Dataset:
   """Load a sunds `tf.data.Dataset`.
@@ -43,7 +43,7 @@ def load(
     split: Split to load
     data_dir: Root TFDS directory
     task: Task definition. Control the subset of spec read from the dataset,
-      the pre-processing to apply,...
+      the pre-processing to apply,... If none, read the frames dataset.
 
   Returns:
     ds: The `tf.data.Dataset` pipeline.

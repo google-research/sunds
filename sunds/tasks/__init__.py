@@ -14,5 +14,7 @@
 
 """Available tasks."""
 
+from sunds.tasks.default_tasks import Frames
+from sunds.tasks.default_tasks import Scenes
 from sunds.tasks.nerf import CenterNormalizeParams
 from sunds.tasks.nerf import Nerf

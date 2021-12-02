@@ -18,7 +18,7 @@ Primitive operations to load a dataset specs.
 """
 
 import typing
-from typing import Callable, Union
+from typing import Callable, Optional, Union
 
 from sunds import utils
 from sunds.core import tasks as tasks_lib
@@ -94,7 +94,7 @@ class DatasetBuilder:
       self,
       *,
       split: Tree[Split],
-      task: tasks_lib.Task,
+      task: Optional[tasks_lib.Task] = None,
       **kwargs,
   ) -> tf.data.Dataset:
     """Returns the `tf.data.Dataset` pipeline.
@@ -102,12 +102,15 @@ class DatasetBuilder:
     Args:
       split: The dataset split to load (e.g. 'train', 'train[80%:]',...)
       task: Task definition. Control the subset of spec read from the dataset,
-        the pre-processing to apply,...
+        the pre-processing to apply,... If none, read the frames dataset.
       **kwargs: Kwargs to forward to `tfds.core.DatasetBuilder.as_dataset`.
 
     Returns:
       ds: The dataset
     """
+    if task is None:
+      import sunds  # pylint: disable=g-import-not-at-top
+      task = sunds.tasks.Frames()
     task = task.initialize(
         scene_builder=self.scene_builder,
         frame_builder=self.frame_builder,

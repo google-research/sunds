@@ -61,6 +61,17 @@ def test_load(lego_data_dir: sunds.Path):  # pylint: disable=redefined-outer-nam
   assert 'scene_name' in ds.element_spec
 
 
+def test_load_no_task(lego_data_dir: sunds.Path):  # pylint: disable=redefined-outer-name
+  ds = sunds.load(
+      'nerf_synthetic/lego',
+      split='train',
+      data_dir=lego_data_dir,
+  )
+  assert isinstance(ds, tf.data.Dataset)
+  assert 'scene_name' in ds.element_spec  # All features loaded by default
+  assert 'cameras' in ds.element_spec
+
+
 def test_builder(lego_data_dir: sunds.Path):  # pylint: disable=redefined-outer-name
   builder = sunds.builder('nerf_synthetic/lego', data_dir=lego_data_dir)
   ds = builder.as_dataset(split='train', task=DummyTask())
