@@ -51,6 +51,26 @@ def test_nerf_frame_only(lego_builder_frame_only: sunds.core.DatasetBuilder):
     _ = builder.scene_builder.info  # Loading scene raise error
 
 
+def test_nerf_tfds_id(lego_builder: sunds.core.DatasetBuilder):
+  ds = lego_builder.as_dataset(
+      split='train',
+      task=sunds.tasks.Nerf(),
+      read_config=tfds.ReadConfig(add_tfds_id=True),
+  )
+  assert isinstance(ds, tf.data.Dataset)
+  img_shape = (800, 800)
+  assert ds.element_spec == {
+      'ray_directions': tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.float32),
+      'ray_origins': tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.float32),
+      'color_image': tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.uint8),
+      'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+      'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+      'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
+      'tfds_id': tf.TensorSpec(shape=(), dtype=tf.string),
+  }
+  list(ds)  # Pipeline can be executed
+
+
 def test_nerf_flatten_img(lego_builder: sunds.core.DatasetBuilder):
   ds = lego_builder.as_dataset(
       split='train',
@@ -199,13 +219,14 @@ def test_nerf_additional_specs(
   list(ds.take(2))  # Pipeline can be executed
 
 
-@pytest.mark.parametrize('normalize_rays', [False, True], ids=[None, 'norm'])
+@pytest.mark.parametrize(
+    'normalize_rays', [False, True], ids=['nonorm', 'norm'])
 @pytest.mark.parametrize('keep_as_image', [False, True], ids=['ray', 'img'])
 @pytest.mark.parametrize(
     'yield_individual_camera', [False, True], ids=['multi', 'single'])
 @pytest.mark.parametrize('additional_frame_specs', [dict, _scene_id_spec])
 @pytest.mark.parametrize(
-    'remove_invalid_rays', [False, True], ids=['remove', None])
+    'remove_invalid_rays', [False, True], ids=['keep', 'remove'])
 def test_all_flags(
     lego_builder: sunds.core.DatasetBuilder,
     normalize_rays: bool,
@@ -235,6 +256,8 @@ def test_all_flags(
             remove_invalid_rays=remove_invalid_rays,
         ),
     )
+    if not remove_invalid_rays:
+      assert len(ds)  # `len` is preserved  # pylint: disable=g-explicit-length-test
     list(ds.take(2))  # Pipeline can be executed
 
 

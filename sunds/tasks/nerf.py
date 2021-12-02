@@ -173,12 +173,18 @@ class Nerf(core.FrameTask):
     # Apply the pre-processing:
     # * Eventually compute the rays (if not included)
     # * Yield individual images (if the dataset has multiple camera)
+    num_elem = len(ds)
     ds = ds.interleave(
         _process_frame(yield_individual_camera=self.yield_individual_camera),  # pylint: disable=no-value-for-parameter
         cycle_length=16,  # Hardcoded values for determinism
         block_length=16,
         num_parallel_calls=tf.data.AUTOTUNE,
     )
+    # Update the number of element in the dataset (ds.interleave loose the info)
+    if self.yield_individual_camera:
+      num_cameras = len(self.frame_specs['cameras'])
+      num_elem = num_elem * num_cameras
+    ds = ds.apply(tf.data.experimental.assert_cardinality(num_elem))
 
     # Eventually normalize the rays
     if isinstance(self.normalize_rays, bool):
@@ -203,7 +209,7 @@ class Nerf(core.FrameTask):
       ds = ds.map(
           _center_example(  # pylint: disable=no-value-for-parameter
               far_plane_for_centering=self.normalize_rays.far_plane,
-              jitter=self.normalize_rays.jitter
+              jitter=self.normalize_rays.jitter,
           ),
           num_parallel_calls=tf.data.AUTOTUNE,
       )
