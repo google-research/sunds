@@ -18,7 +18,7 @@ import abc
 import copy
 from typing import Any, Dict, Optional
 
-from sunds.typing import FeatureSpecs, Split, Tree, TreeDict  # pylint: disable=g-multiple-import
+from sunds.typing import FeatureSpecsHint, Split, Tree, TreeDict  # pylint: disable=g-multiple-import
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
@@ -138,7 +138,7 @@ class FrameTask(Task):
 
   @property
   @abc.abstractmethod
-  def frame_specs(self) -> Optional[FeatureSpecs]:
+  def frame_specs(self) -> Optional[FeatureSpecsHint]:
     """Expected specs of the scene understanding pipeline.
 
     This should be a subset of the `full_frame_specs`.

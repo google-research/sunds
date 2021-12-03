@@ -22,15 +22,15 @@ from sunds import utils
 from sunds.core import specs
 from sunds.core import tf_geometry
 from sunds.tasks import boundaries_utils
-from sunds.typing import FeatureSpecs, Split, TensorDict, TreeDict  # pylint: disable=g-multiple-import
+from sunds.typing import FeatureSpecsHint, Split, TensorDict, TreeDict  # pylint: disable=g-multiple-import
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
 
 def _camera_specs(
-    original_specs: FeatureSpecs,
-    additional_camera_specs: FeatureSpecs,
-) -> FeatureSpecs:
+    original_specs: FeatureSpecsHint,
+    additional_camera_specs: FeatureSpecsHint,
+) -> FeatureSpecsHint:
   """Fetch the camera."""
   # Minimal camera position/rotation
   spec = specs.camera_spec()
@@ -121,9 +121,10 @@ class Nerf(core.FrameTask):
   normalize_rays: Union[bool, CenterNormalizeParams] = False
   yield_individual_camera: bool = True
   remove_invalid_rays: bool = True
-  additional_camera_specs: FeatureSpecs = dataclasses.field(
+  additional_camera_specs: FeatureSpecsHint = dataclasses.field(
       default_factory=dict)
-  additional_frame_specs: FeatureSpecs = dataclasses.field(default_factory=dict)
+  additional_frame_specs: FeatureSpecsHint = dataclasses.field(
+      default_factory=dict)
 
   def __post_init__(self):
     # Normalize additional_specs
@@ -140,11 +141,12 @@ class Nerf(core.FrameTask):
 
   def as_dataset(self, **kwargs):
     # Forward the split name to the pipeline function
+    assert kwargs.get('batch_size') is None, 'Batch size incompatible with Nerf'
     return super().as_dataset(
         pipeline_kwargs=dict(split=kwargs['split']), **kwargs)
 
   @property
-  def frame_specs(self) -> Optional[FeatureSpecs]:
+  def frame_specs(self) -> Optional[FeatureSpecsHint]:
     """Expected specs of the scene understanding pipeline."""
     if 'cameras' in self.additional_frame_specs:
       raise ValueError(
@@ -175,7 +177,10 @@ class Nerf(core.FrameTask):
     # * Yield individual images (if the dataset has multiple camera)
     num_elem = len(ds)
     ds = ds.interleave(
-        _process_frame(yield_individual_camera=self.yield_individual_camera),  # pylint: disable=no-value-for-parameter
+        _process_frame(  # pylint: disable=no-value-for-parameter
+            yield_individual_camera=self.yield_individual_camera,
+            additional_camera_specs=self.additional_camera_specs,
+        ),
         cycle_length=16,  # Hardcoded values for determinism
         block_length=16,
         num_parallel_calls=tf.data.AUTOTUNE,
@@ -241,6 +246,7 @@ def _process_frame(
     frame: TensorDict,
     *,
     yield_individual_camera: bool,
+    additional_camera_specs: FeatureSpecsHint,
 ) -> tf.data.Dataset:
   """Add the rays on all camera images."""
   # Get frame to scene transform.
@@ -250,8 +256,10 @@ def _process_frame(
   # Compute the rays for each camera
   for camera_name, camera_data in frame['cameras'].items():
     ex = _add_rays_single_cam(camera_data, scene_from_frame=scene_from_frame)
-    del ex['intrinsics']  # Exclude fields from the returned examples
-    del ex['extrinsics']
+    if 'intrinsics' not in additional_camera_specs:
+      del ex['intrinsics']  # Exclude fields from the returned examples
+    if 'extrinsics' not in additional_camera_specs:
+      del ex['extrinsics']
     cameras[camera_name] = ex
 
   if yield_individual_camera:
@@ -483,10 +491,12 @@ def _clone_static_fields(
   return ex
 
 
-def _normalize_additional_specs(spec: FeatureSpecs) -> FeatureSpecs:
+def _normalize_additional_specs(spec: FeatureSpecsHint) -> FeatureSpecsHint:
   """Normalize feature specs."""
-  if isinstance(spec, (list, set)):
+  if isinstance(spec, (list, tuple, set)):
     return {k: True for k in spec}
+  if not isinstance(spec, dict):
+    raise TypeError(f'Invalid additional spec type: {type(spec)}')
   return spec
 
 

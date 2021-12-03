@@ -15,7 +15,7 @@
 """Typing annotations of sunds."""
 # This file is at the top-level folder to allow `from sunds.typing import xyz`
 
-from typing import Any, List, Union
+from typing import Any, Iterable, List, Union
 
 import numpy as np
 import tensorflow as tf
@@ -54,7 +54,13 @@ ArrayLike = Union[Array, Any]
 Split = Union[str, tfds.Split, tfds.core.ReadInstruction]
 
 _FeatureSpecElem = Union[tfds.features.FeatureConnector, tf.dtypes.DType]
-FeatureSpecs = tfds.typing.TreeDict[_FeatureSpecElem]
+FeatureSpecs = TreeDict[_FeatureSpecElem]
+# Hint to specify features specs. E.g.
+# {'color_images'}
+# {'color_images': True}
+# {'color_images': tfds.features.Image()}
+_FeatureSpecHintElem = Union[_FeatureSpecElem, Iterable[str], bool]
+FeatureSpecsHint = TreeDict[_FeatureSpecHintElem]
 
 # Args accepted by `tfds.features.LabeledImage`:
 # * `['background', 'car']`: List of label names

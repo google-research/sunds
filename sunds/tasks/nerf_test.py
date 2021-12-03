@@ -15,13 +15,12 @@
 """Tests for nerf."""
 
 import contextlib
-from typing import Callable
 
 import numpy as np
 import pytest
 import sunds
 from sunds.tasks import boundaries_utils
-from sunds.typing import FeatureSpecs
+from sunds.typing import FeatureSpecsHint
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
@@ -194,11 +193,6 @@ def test_normalize_rays():
     )
 
 
-def _scene_id_spec() -> FeatureSpecs:
-  frame_spec = sunds.specs.frame_spec({})
-  return {'frame_name': frame_spec['frame_name']}
-
-
 @pytest.mark.parametrize('normalize_rays', [False, True])
 @pytest.mark.parametrize('yield_individual_camera', [False, True])
 def test_nerf_additional_specs(
@@ -209,13 +203,17 @@ def test_nerf_additional_specs(
   ds = lego_builder.as_dataset(
       split='train',
       task=sunds.tasks.Nerf(
-          additional_frame_specs=_scene_id_spec(),
+          additional_frame_specs={'timestamp'},
+          additional_camera_specs={'intrinsics'},
           normalize_rays=normalize_rays,
           yield_individual_camera=yield_individual_camera,
       ),
   )
-  assert (ds.element_spec['frame_name'] == tf.TensorSpec(
-      shape=(), dtype=tf.string))
+  assert 'timestamp' in ds.element_spec
+  if yield_individual_camera:
+    assert 'intrinsics' in ds.element_spec
+  else:
+    assert 'intrinsics' in ds.element_spec['cameras']['default_camera']
   list(ds.take(2))  # Pipeline can be executed
 
 
@@ -224,7 +222,7 @@ def test_nerf_additional_specs(
 @pytest.mark.parametrize('keep_as_image', [False, True], ids=['ray', 'img'])
 @pytest.mark.parametrize(
     'yield_individual_camera', [False, True], ids=['multi', 'single'])
-@pytest.mark.parametrize('additional_frame_specs', [dict, _scene_id_spec])
+@pytest.mark.parametrize('additional_frame_specs', [{}, {'timestamp'}])
 @pytest.mark.parametrize(
     'remove_invalid_rays', [False, True], ids=['keep', 'remove'])
 def test_all_flags(
@@ -232,12 +230,10 @@ def test_all_flags(
     normalize_rays: bool,
     keep_as_image: bool,
     yield_individual_camera: bool,
-    additional_frame_specs: Callable[[], FeatureSpecs],
+    additional_frame_specs: FeatureSpecsHint,
     remove_invalid_rays: bool,
 ):
   """Test which checks that all combinations of options work together."""
-  additional_frame_specs = additional_frame_specs()
-
   # Some conbinaitions are incompatible
   if additional_frame_specs and not keep_as_image:
     error_cm = pytest.raises(ValueError, match='frame specs not compatible')
