@@ -15,7 +15,8 @@
 """Nerf task."""
 
 import dataclasses
-from typing import Any, Callable, Optional, Union
+import enum
+from typing import Any, Callable, Optional, Tuple, Union
 
 from sunds import core
 from sunds import utils
@@ -25,6 +26,28 @@ from sunds.tasks import boundaries_utils
 from sunds.typing import FeatureSpecsHint, Split, TensorDict, TreeDict  # pylint: disable=g-multiple-import
 import tensorflow as tf
 import tensorflow_datasets as tfds
+
+
+class YieldMode(enum.Enum):
+  """Define the example structure yield by `tf.data.Dataset`.
+
+  Attributes:
+    RAY: Each example is an individual ray. Cameras and image dims flattened.
+    IMAGE: Each example is an indidual camera `(h, w)` (default).
+    STACKED: Each example contain all camera stacked together
+      `(num_cams, h, w)`.
+    DICT: The example contain the dict of all cameras (
+      `'cameras': {'camera0': {'ray_origins': ...}, 'camera1': ...}`).
+  """
+
+  # TODO(epot): Migrate to coutils.epy.EnumStr
+  def _generate_next_value_(name, start, count, last_values):  # pylint: disable=no-self-argument
+    return name.lower()
+
+  RAY = enum.auto()
+  IMAGE = enum.auto()
+  STACKED = enum.auto()
+  DICT = enum.auto()
 
 
 def _camera_specs(
@@ -77,49 +100,43 @@ class Nerf(core.FrameTask):
       'ray_origins': tf.Tensor(shape=(*batch_shape, 3), dtype=tf.float32),
       'ray_directions': tf.Tensor(shape=(*batch_shape, 3), dtype=tf.float32),
       'color_image': tf.Tensor(shape=(*batch_shape, 3), dtype=tf.uint8),
-      'scene_name': tf.Tensor(shape=(*batch_shape, 1), dtype=tf.string),
-      'frame_name': tf.Tensor(shape=(*batch_shape, 1), dtype=tf.string),
-      'camera_name': tf.Tensor(shape=(*batch_shape, 1), dtype=tf.string),
-      ...,
+      'scene_name': tf.Tensor(shape=(1,), dtype=tf.string),
+      'frame_name': tf.Tensor(shape=(1,), dtype=tf.string),
+      'camera_name': tf.Tensor(shape=(1,), dtype=tf.string),
   }
   ```
 
   `batch_shape` is:
 
-  * `(h, w)` if `keep_as_image=True` (default)
-  * `()` if `keep_as_image=False`
+  * `(num_cameras, h, w)` if yield_mode is STACKED
+  * `(h, w)` if yield_mode is IMAGE (default)
+  * `()` if yield_mode is RAY
 
   Note:
 
   * If the dataset has multiple cameras, each camera will be yielded
-    individually, unless `yield_individual_camera=False`.
+    individually, unless `yield_mode` is set to another value.
   * `ray_origins`/`ray_directions` are automatically computed if not present.
-  * `camera_name` feature is only available when `yield_individual_camera=True`
-    (default).
-  * `ray_directions` may contain invalid values (all-zeros) when
-    `keep_as_image=True`.
+  * `ray_directions` may contain invalid values (all-zeros) for some datasets.
 
   Attributes:
-    keep_as_image: Whether to keep the image dimension.
+    yield_mode: Control whether the dataset returns examples as individual
+      `RAY`, individual `IMAGE` (default), all camera stacked (STACKED)
+      together. Accept `str` or `sunds.tasks.YieldMode`.
     normalize_rays: If True, the scene is scaled such as all objects in the
       scenes are contained in a `[-1, 1]` box. Ray directions are also
       normalized. Can also be a configurable dataclass for more options.
-    yield_individual_camera: If True (default), each camera within a frame is
-      yield individually. Otherwise, each example contains all cameras (
-      `'cameras': {'camera0': {'ray_origins': ...}, 'camera1': ...}`).
     remove_invalid_rays: If True (default), do not yield rays where
-      ray_direction == [0,0,0]. Only has effect when keep_as_image=False and
-      yield_individual_camera=True.
+      ray_direction == [0,0,0]. Only has effect when `yield_mode=RAY`.
     additional_camera_specs: Additional camera specs to include. Those features
-      can be transformed by other option (e.g. `keep_as_image=False` will
+      can be transformed by other option (e.g. `yield_mode=RAY` will
       unbatch `category_image`,...).
     additional_frame_specs: Additional features specs to include. Those features
       will be forwarded as-is (without any transformation). Should not contain
       any camera fields.
   """
-  keep_as_image: bool = True
+  yield_mode: Union[str, YieldMode] = YieldMode.IMAGE
   normalize_rays: Union[bool, CenterNormalizeParams] = False
-  yield_individual_camera: bool = True
   remove_invalid_rays: bool = True
   additional_camera_specs: FeatureSpecsHint = dataclasses.field(
       default_factory=dict)
@@ -127,7 +144,8 @@ class Nerf(core.FrameTask):
       default_factory=dict)
 
   def __post_init__(self):
-    # Normalize additional_specs
+    # Normalize arguments
+    object.__setattr__(self, 'yield_mode', YieldMode(self.yield_mode))
     object.__setattr__(
         self,
         'additional_camera_specs',
@@ -138,6 +156,7 @@ class Nerf(core.FrameTask):
         'additional_frame_specs',
         _normalize_additional_specs(self.additional_frame_specs),
     )
+    assert 'cameras' not in self.additional_frame_specs
 
   def as_dataset(self, **kwargs):
     # Forward the split name to the pipeline function
@@ -172,82 +191,58 @@ class Nerf(core.FrameTask):
 
   def pipeline(self, ds: tf.data.Dataset, *, split: Split) -> tf.data.Dataset:
     """Post processing specs."""
-    # Apply the pre-processing:
+    # Apply the transformations:
     # * Eventually compute the rays (if not included)
-    # * Yield individual images (if the dataset has multiple camera)
-    num_elem = len(ds)
-    ds = ds.interleave(
-        _process_frame(  # pylint: disable=no-value-for-parameter
-            yield_individual_camera=self.yield_individual_camera,
-            additional_camera_specs=self.additional_camera_specs,
-        ),
-        cycle_length=16,  # Hardcoded values for determinism
-        block_length=16,
+    # * Eventually normalize the rays
+    # * Unbatch to yield individual images or rays (if the dataset has multiple
+    #   cameras)
+
+    # Eventually include rays (if not included)
+    ds = ds.map(
+        _add_rays(additional_camera_specs=self.additional_camera_specs),  # pylint: disable=no-value-for-parameter
         num_parallel_calls=tf.data.AUTOTUNE,
     )
-    # Update the number of element in the dataset (ds.interleave loose the info)
-    if self.yield_individual_camera:
-      num_cameras = len(self.frame_specs['cameras'])
-      num_elem = num_elem * num_cameras
-    ds = ds.apply(tf.data.experimental.assert_cardinality(num_elem))
 
     # Eventually normalize the rays
-    if isinstance(self.normalize_rays, bool):
-      if self.normalize_rays:
-        scene_boundaries = _get_scene_boundaries(
-            self.scene_builder, split=split)
-        normalize_fn = _normalize_rays(scene_boundaries=scene_boundaries)  # pylint: disable=no-value-for-parameter
-        normalize_fn = _apply_to_all_cameras(  # pylint: disable=no-value-for-parameter
-            fn=normalize_fn,
-            yield_individual_camera=self.yield_individual_camera,
-        )
-        ds = ds.map(
-            normalize_fn,
-            num_parallel_calls=tf.data.AUTOTUNE,
-        )
-    elif isinstance(self.normalize_rays, CenterNormalizeParams):
-      if self.yield_individual_camera:
-        raise ValueError('centering require yield_individual_camera=False')
-      # TODO(tutmann): Consider moving this down below keep_as_image.
-      # We then would normalize only the rays that we actually query.
-      # This would have an additional free data augmentation effect on things.
-      ds = ds.map(
-          _center_example(  # pylint: disable=no-value-for-parameter
-              far_plane_for_centering=self.normalize_rays.far_plane,
-              jitter=self.normalize_rays.jitter,
-          ),
-          num_parallel_calls=tf.data.AUTOTUNE,
+    if self.normalize_rays:
+      ds = _normalize_rays_ds(
+          ds,
+          split=split,
+          normalize_rays=self.normalize_rays,
+          scene_builder=self.scene_builder,
       )
-    else:
-      raise TypeError(f'Invalid `normalize_rays`: {self.normalize_rays!r}')
+
+    # Eventually flatten the camera, images
+    if self.yield_mode in {YieldMode.RAY, YieldMode.IMAGE}:
+      ds = _flatten_camera_dim_ds(ds)
+    elif self.yield_mode == YieldMode.STACKED:
+      ds = ds.map(_stack_cameras)
 
     # Eventually flatten the images. Batch size: `(h, w)` -> `()`
-    if not self.keep_as_image:
+    if self.yield_mode == YieldMode.RAY:
       if self.additional_frame_specs:
-        raise ValueError(
-            'Additional frame specs not compatible with keep_as_image=False')
+        raise NotImplementedError(
+            'Additional frame specs not compatible with YieldMode.RAY. '
+            'Please open a GitHub issue if needed.')
       # Copy static fields (scene_name, frame_name, ...) to each ray.
-      ds = ds.map(
-          _clone_static_fields(  # pylint: disable=no-value-for-parameter
-              yield_individual_camera=self.yield_individual_camera,))
+      ds = ds.map(_clone_static_fields)
 
       # Remove (H, W, ...) part of shape.
       ds = ds.unbatch().unbatch()
 
       # Drop invalid rays (direction == 0).
-      if self.remove_invalid_rays and self.yield_individual_camera:
+      if self.remove_invalid_rays:
         ds = ds.filter(_has_valid_ray_directions)
 
     return ds
 
 
 @utils.map_fn
-def _process_frame(
+def _add_rays(
     frame: TensorDict,
     *,
-    yield_individual_camera: bool,
     additional_camera_specs: FeatureSpecsHint,
-) -> tf.data.Dataset:
+) -> TensorDict:
   """Add the rays on all camera images."""
   # Get frame to scene transform.
   scene_from_frame = tf_geometry.Isometry(**frame.pop('pose'))
@@ -262,22 +257,9 @@ def _process_frame(
       del ex['extrinsics']
     cameras[camera_name] = ex
 
-  if yield_individual_camera:
-    camera_names, cameras = zip(*cameras.items())
-
-    # Transpose list[dict] into dict[list]
-    cameras = tf.nest.map_structure(lambda *args: list(args), *cameras)
-    cameras['camera_name'] = tf.convert_to_tensor(camera_names)
-
-    frame.pop('cameras')
-    return _ds_merge_dict(
-        slices=cameras,
-        static=frame,
-    )
-  else:
-    # Otherwise, keep the camera names / structure
-    frame['cameras'] = cameras
-    return tf.data.Dataset.from_tensors(frame)
+  # Update frame
+  frame['cameras'] = cameras
+  return frame
 
 
 def _add_rays_single_cam(
@@ -332,6 +314,39 @@ def _has_precomputed_rays(camera_dict: TreeDict[Any]) -> bool:
   return all(k in camera_dict for k in ('ray_origins', 'ray_directions'))
 
 
+def _normalize_rays_ds(
+    ds: tf.data.Dataset,
+    *,
+    split: Split,
+    normalize_rays: Union[bool, CenterNormalizeParams],
+    scene_builder: tfds.core.DatasetBuilder,
+) -> tf.data.Dataset:
+  """Normalize the rays."""
+  if isinstance(normalize_rays, bool):
+    assert normalize_rays
+    scene_boundaries = _get_scene_boundaries(scene_builder, split=split)
+    normalize_fn = _normalize_rays(scene_boundaries=scene_boundaries)  # pylint: disable=no-value-for-parameter
+    normalize_fn = _apply_to_all_cameras(fn=normalize_fn)  # pylint: disable=no-value-for-parameter
+    ds = ds.map(
+        normalize_fn,
+        num_parallel_calls=tf.data.AUTOTUNE,
+    )
+  elif isinstance(normalize_rays, CenterNormalizeParams):
+    # TODO(tutmann): Consider moving this down below keep_as_image.
+    # We then would normalize only the rays that we actually query.
+    # This would have an additional free data augmentation effect on things.
+    ds = ds.map(
+        _center_example(  # pylint: disable=no-value-for-parameter
+            far_plane_for_centering=normalize_rays.far_plane,
+            jitter=normalize_rays.jitter,
+        ),
+        num_parallel_calls=tf.data.AUTOTUNE,
+    )
+  else:
+    raise TypeError(f'Invalid `normalize_rays`: {normalize_rays!r}')
+  return ds
+
+
 @utils.map_fn
 def _normalize_rays(
     static_ex: TensorDict,
@@ -367,7 +382,9 @@ def _normalize_rays(
   # TODO(epot): If present, should also scale depth accordingly, so
   # `depth * direction` still works
   if 'depth_image' in camera_ex:
-    raise NotImplementedError('Depth not normalized for now.')
+    raise NotImplementedError(
+        'Depth not normalized for now. Please open a Github issue if you '
+        'need this feature.')
 
   camera_ex['ray_origins'] = origins
   camera_ex['ray_directions'] = directions
@@ -375,7 +392,7 @@ def _normalize_rays(
 
 
 def _get_scene_boundaries(
-    scene_builder,
+    scene_builder: tfds.core.DatasetBuilder,
     split: str,
 ) -> boundaries_utils.MultiSceneBoundaries:
   """Extract the scenes boundaries."""
@@ -395,6 +412,9 @@ def _get_scene_boundaries(
       read_config=read_config,
   )
   # Load all scenes boundaries
+  # TODO(epot): This can be very costly. Should have a way to indicate
+  # all datasets share the same scene boundaries, so only the first one
+  # is required.
   ds = tfds.as_numpy(ds)
   ds = utils.tqdm(ds, desc='Loading scenes...', leave=False)
   ds = list(ds)
@@ -407,7 +427,6 @@ def _apply_to_all_cameras(
     ex: TensorDict,
     *,
     fn: Callable[[TensorDict, TensorDict], TensorDict],
-    yield_individual_camera: bool,
 ) -> TensorDict:
   """Apply the given function individually on each individual camera.
 
@@ -416,18 +435,60 @@ def _apply_to_all_cameras(
     fn: Function with signature (static_ex, camera_ex) -> camera_ex. The `ex` is
       decomposed into static_ex (values shared across all camera, like
       `scene_name`) and `camera_ex` (camera specific values)
-    yield_individual_camera: Whether `ex` contain all cameras or a single one.
 
   Returns:
     The `ex` with the `fn` transformation applied to all cameras.
   """
-  if not yield_individual_camera:
-    ex['cameras'] = {
-        name: fn(ex, camera) for name, camera in ex['cameras'].items()
-    }
-    return ex
-  else:
-    return fn(ex, ex)
+  ex['cameras'] = {
+      name: fn(ex, camera) for name, camera in ex['cameras'].items()
+  }
+  return ex
+
+
+def _stack_cameras(frame: TensorDict) -> TensorDict:
+  """Batch camera together."""
+  frame, cameras = _extract_static_and_camera_dict(frame)
+  assert not set(frame).intersection(cameras)
+  return {**frame, **cameras}
+
+
+def _flatten_camera_dim_ds(ds: tf.data.Dataset,) -> tf.data.Dataset:
+  """Yield camera individually."""
+  num_elem = len(ds)
+  num_cameras = len(ds.element_spec['cameras'])
+  ds = ds.interleave(
+      _flatten_camera_dim,
+      cycle_length=16,  # Hardcoded values for determinism
+      block_length=16,
+      num_parallel_calls=tf.data.AUTOTUNE,
+  )
+  # Update the number of element in the dataset (ds.interleave loose the info)
+  num_elem = num_elem * num_cameras
+  ds = ds.apply(tf.data.experimental.assert_cardinality(num_elem))
+  return ds
+
+
+@utils.map_fn
+def _flatten_camera_dim(frame: TensorDict) -> tf.data.Dataset:
+  """Add the rays on all camera images."""
+  frame, cameras = _extract_static_and_camera_dict(frame)
+  return _ds_merge_dict(
+      slices=cameras,
+      static=frame,
+  )
+
+
+def _extract_static_and_camera_dict(
+    frame: TensorDict) -> Tuple[TensorDict, TensorDict]:
+  """Extract the static features, and stack the camera features."""
+  frame = dict(frame)
+  cameras = frame.pop('cameras')
+  camera_names, cameras = zip(*cameras.items())
+
+  # Transpose list[dict] into dict[list]
+  cameras = tf.nest.map_structure(lambda *args: list(args), *cameras)
+  cameras['camera_name'] = tf.convert_to_tensor(camera_names)
+  return frame, cameras
 
 
 def _ds_merge_dict(
@@ -455,27 +516,18 @@ def _ds_merge_dict(
 
 
 @utils.map_fn
-def _clone_static_fields(
-    ex: TensorDict,
-    *,
-    yield_individual_camera: bool,
-) -> TensorDict:
+def _clone_static_fields(ex: TensorDict,) -> TensorDict:
   """Clone static fields to each ray.
 
   Args:
     ex: A single-camera or multi-camera example. Must have the following fields
       -- frame_name, scene_name.
-    yield_individual_camera: If True, field camera_name is also required.
 
   Returns:
     Modified version of `ex` with `*_name` features cloned once per pixel.
   """
   # Identify batch shape.
-  if yield_individual_camera:
-    camera_ex = ex
-  else:
-    camera_ex = next(iter(ex['cameras'].values()))
-  batch_shape: tf.TensorShape = camera_ex['color_image'].shape[0:-1]
+  batch_shape: tf.TensorShape = ex['color_image'].shape[0:-1]
 
   # TODO(duckworthd): Duplicate ALL static fields, including those specified
   # in additional_frame_specs.
@@ -485,9 +537,7 @@ def _clone_static_fields(
   # Clone individual fields.
   ex['scene_name'] = _clone(ex['scene_name'])
   ex['frame_name'] = _clone(ex['frame_name'])
-  if yield_individual_camera:
-    ex['camera_name'] = _clone(ex['camera_name'])
-
+  ex['camera_name'] = _clone(ex['camera_name'])
   return ex
 
 

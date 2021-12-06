@@ -14,6 +14,8 @@
 
 """Tests for nerf."""
 
+from __future__ import annotations
+
 import contextlib
 
 import numpy as np
@@ -70,19 +72,38 @@ def test_nerf_tfds_id(lego_builder: sunds.core.DatasetBuilder):
   list(ds)  # Pipeline can be executed
 
 
-def test_nerf_flatten_img(lego_builder: sunds.core.DatasetBuilder):
+@pytest.mark.parametrize(
+    'yield_mode, batch_shape',
+    [
+        ('ray', ()),
+        ('image', (800, 800)),
+        ('stacked', (1, 800, 800)),
+    ],
+)
+def test_nerf_batch_shape(
+    lego_builder: sunds.core.DatasetBuilder,
+    yield_mode: str,
+    batch_shape: tuple[int, ...],
+):
   ds = lego_builder.as_dataset(
       split='train',
-      task=sunds.tasks.Nerf(keep_as_image=False),
+      task=sunds.tasks.Nerf(yield_mode=yield_mode),
   )
   assert isinstance(ds, tf.data.Dataset)
+  camera_shape = (1,) if yield_mode == 'stacked' else ()
   assert ds.element_spec == {
-      'ray_directions': tf.TensorSpec(shape=(3,), dtype=tf.float32),
-      'ray_origins': tf.TensorSpec(shape=(3,), dtype=tf.float32),
-      'color_image': tf.TensorSpec(shape=(3,), dtype=tf.uint8),
-      'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
-      'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
-      'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
+      'ray_directions':
+          tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.float32),
+      'ray_origins':
+          tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.float32),
+      'color_image':
+          tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.uint8),
+      'scene_name':
+          tf.TensorSpec(shape=(), dtype=tf.string),
+      'frame_name':
+          tf.TensorSpec(shape=(), dtype=tf.string),
+      'camera_name':
+          tf.TensorSpec(shape=camera_shape, dtype=tf.string),
   }
   list(ds.take(4))  # Pipeline can be executed
 
@@ -90,7 +111,7 @@ def test_nerf_flatten_img(lego_builder: sunds.core.DatasetBuilder):
 def test_nerf_yield_all_camera(lego_builder: sunds.core.DatasetBuilder):
   ds = lego_builder.as_dataset(
       split='train',
-      task=sunds.tasks.Nerf(yield_individual_camera=False),
+      task=sunds.tasks.Nerf(yield_mode='dict'),
   )
   assert isinstance(ds, tf.data.Dataset)
   img_shape = (800, 800)
@@ -193,50 +214,51 @@ def test_normalize_rays():
     )
 
 
-@pytest.mark.parametrize('normalize_rays', [False, True])
-@pytest.mark.parametrize('yield_individual_camera', [False, True])
+@pytest.mark.parametrize('yield_mode', ['image', 'stacked', 'dict'])
 def test_nerf_additional_specs(
     lego_builder: sunds.core.DatasetBuilder,
-    yield_individual_camera: bool,
-    normalize_rays: bool,
+    yield_mode: str,
 ):
   ds = lego_builder.as_dataset(
       split='train',
       task=sunds.tasks.Nerf(
           additional_frame_specs={'timestamp'},
           additional_camera_specs={'intrinsics'},
-          normalize_rays=normalize_rays,
-          yield_individual_camera=yield_individual_camera,
+          yield_mode=yield_mode,
       ),
   )
   assert 'timestamp' in ds.element_spec
-  if yield_individual_camera:
-    assert 'intrinsics' in ds.element_spec
-  else:
+  if yield_mode == 'dict':
     assert 'intrinsics' in ds.element_spec['cameras']['default_camera']
-  list(ds.take(2))  # Pipeline can be executed
+  else:
+    assert 'intrinsics' in ds.element_spec
+  assert len(ds)  # pylint: disable=g-explicit-length-test
+  list(ds)  # Pipeline can be executed
 
 
 @pytest.mark.parametrize(
     'normalize_rays', [False, True], ids=['nonorm', 'norm'])
-@pytest.mark.parametrize('keep_as_image', [False, True], ids=['ray', 'img'])
 @pytest.mark.parametrize(
-    'yield_individual_camera', [False, True], ids=['multi', 'single'])
+    'yield_mode',
+    ['ray', 'image', 'stacked', 'dict'],
+)
 @pytest.mark.parametrize('additional_frame_specs', [{}, {'timestamp'}])
 @pytest.mark.parametrize(
     'remove_invalid_rays', [False, True], ids=['keep', 'remove'])
 def test_all_flags(
     lego_builder: sunds.core.DatasetBuilder,
     normalize_rays: bool,
-    keep_as_image: bool,
-    yield_individual_camera: bool,
+    yield_mode: str,
     additional_frame_specs: FeatureSpecsHint,
     remove_invalid_rays: bool,
 ):
   """Test which checks that all combinations of options work together."""
   # Some conbinaitions are incompatible
-  if additional_frame_specs and not keep_as_image:
-    error_cm = pytest.raises(ValueError, match='frame specs not compatible')
+  if additional_frame_specs and yield_mode == 'ray':
+    error_cm = pytest.raises(
+        NotImplementedError,
+        match='frame specs not compatible',
+    )
   else:
     # TODO(py3.7): Replace by contextlib.nullcontext
     error_cm = contextlib.suppress()
@@ -245,9 +267,8 @@ def test_all_flags(
     ds = lego_builder.as_dataset(
         split='train',
         task=sunds.tasks.Nerf(
-            keep_as_image=keep_as_image,
+            yield_mode=yield_mode,
             normalize_rays=normalize_rays,
-            yield_individual_camera=yield_individual_camera,
             additional_frame_specs=additional_frame_specs,
             remove_invalid_rays=remove_invalid_rays,
         ),
@@ -262,34 +283,33 @@ def test_center_example():
       'cameras': {
           'target': {
               'ray_origins':
-                  tf.constant([
-                      [0, 3, 7],
-                      # The second ray has an invalid direction, so its origin
-                      # should be ignored for the center calculation.
-                      [1000, 1000, 1000],
-                  ], dtype=tf.float32),
+                  tf.constant(
+                      [
+                          [0, 3, 7],
+                          # The second ray has an invalid direction, so its
+                          # origin should be ignored for the center calculation.
+                          [1000, 1000, 1000],
+                      ],
+                      dtype=tf.float32),
               'ray_directions':
                   tf.constant([
                       [1, 0, 0],
                       [0, 0, 0],
                   ], dtype=tf.float32),
-              },
+          },
           'input0': {
-              'ray_origins':
-                  tf.constant([
-                      [0, 3, 7],
-                  ], dtype=tf.float32),
-              'ray_directions':
-                  tf.constant([
-                      [0, 1, 0],
-                  ], dtype=tf.float32),
+              'ray_origins': tf.constant([
+                  [0, 3, 7],
+              ], dtype=tf.float32),
+              'ray_directions': tf.constant([
+                  [0, 1, 0],
+              ], dtype=tf.float32),
           },
       },
   }
 
-  centered_ex = sunds.tasks.nerf._center_example(ex,
-                                                 far_plane_for_centering=10,
-                                                 jitter=0)
+  centered_ex = sunds.tasks.nerf._center_example(
+      ex, far_plane_for_centering=10, jitter=0)
 
   expected_ex = {
       'cameras': {
@@ -304,16 +324,14 @@ def test_center_example():
                       [1, 0, 0],
                       [0, 0, 0],
                   ], dtype=tf.float32),
-              },
+          },
           'input0': {
-              'ray_origins':
-                  tf.constant([
-                      [-5, -5, 0],
-                  ], dtype=tf.float32),
-              'ray_directions':
-                  tf.constant([
-                      [0, 1, 0],
-                  ], dtype=tf.float32),
+              'ray_origins': tf.constant([
+                  [-5, -5, 0],
+              ], dtype=tf.float32),
+              'ray_directions': tf.constant([
+                  [0, 1, 0],
+              ], dtype=tf.float32),
           },
       },
   }

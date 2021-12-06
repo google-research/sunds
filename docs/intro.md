@@ -76,7 +76,7 @@ to dynamically generate the rays origin/position and will returns a
 ds = sunds.load(
     'nerf_synthetic/lego',
     split='train',
-    task=sunds.tasks.Nerf(keep_as_image=False),
+    task=sunds.tasks.Nerf(yield_mode='ray'),  # Mode can be ray, image,...
 )
 assert ds.element_spec == {
     'ray_directions': tf.TensorSpec(shape=(3,), dtype=tf.float32),
