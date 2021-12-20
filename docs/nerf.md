@@ -52,11 +52,12 @@ ds = ds.shuffle(ray_buffer_size)  # Shuffle rays across images
 
 Depending on `yield_mode`, `batch_shape` can be:
 
-* `YieldMode.RAY` (or `'ray'`): `()`
-* `YieldMode.IMAGE` (or `'image'`): `(h, w)`
-* `YieldMode.STACKED` (or `'dict'`): `(num_cameras, h, w)`
+*   `YieldMode.RAY` (or `'ray'`): `()`
+*   `YieldMode.IMAGE` (or `'image'`): `(h, w)`
+*   `YieldMode.STACKED` (or `'stacked'`): `(num_cameras, h, w)`
 
-`yield_mode` can also be  `YieldMode.DICT` (or `'dict'`) in which case, the original dict is returned.
+`yield_mode` can also be `YieldMode.DICT` (or `'dict'`) in which case, the
+original dict is returned.
 
 ```python
 ds = sunds.load(..., task=sunds.tasks.Nerf(yield_mode='dict'))
