@@ -17,6 +17,7 @@
 import json
 from typing import Any, Dict
 
+from etils import epath
 import numpy as np
 from PIL import Image
 import sunds
@@ -64,7 +65,7 @@ class NerfSyntheticFrames(tfds.core.GeneratorBasedBuilder):
             self._generate_examples(split_name='val', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
     }
 
-  def _generate_examples(self, scene_dir: sunds.Path, split_name: str):
+  def _generate_examples(self, scene_dir: epath.Path, split_name: str):
     scene_name = scene_dir.name
     scene_path = scene_dir / f'transforms_{split_name}.json'
     scene_data = json.loads(scene_path.read_text())
@@ -85,7 +86,7 @@ class NerfSyntheticFrames(tfds.core.GeneratorBasedBuilder):
       yield frame_name, frame.asdict()
 
 
-def _load_img_white_bkgd(path: sunds.Path) -> np.ndarray:
+def _load_img_white_bkgd(path: epath.Path) -> np.ndarray:
   """Load 4-channel images, returns 3-channel img with white background."""
   with path.open('rb') as f:
     img = np.array(Image.open(f))

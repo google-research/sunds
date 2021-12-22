@@ -20,10 +20,11 @@ For familiarity, those utils try to match the TFDS load API.
 import functools
 from typing import Optional
 
+from etils.epath import PathLike
 from sunds import utils
 from sunds.core import dataset_builder
 from sunds.core import tasks
-from sunds.typing import PathLike, Split, Tree  # pylint: disable=g-multiple-import
+from sunds.typing import Split, Tree  # pylint: disable=g-multiple-import
 import tensorflow as tf
 import tensorflow_datasets as tfds
 
