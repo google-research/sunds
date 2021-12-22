@@ -18,6 +18,7 @@ import dataclasses
 import enum
 from typing import Any, Callable, Optional, Tuple, Union
 
+from etils import etqdm
 from sunds import core
 from sunds import utils
 from sunds.core import specs
@@ -416,7 +417,7 @@ def _get_scene_boundaries(
   # all datasets share the same scene boundaries, so only the first one
   # is required.
   ds = tfds.as_numpy(ds)
-  ds = utils.tqdm(ds, desc='Loading scenes...', leave=False)
+  ds = etqdm.tqdm(ds, desc='Loading scenes...', leave=False)
   ds = list(ds)
   scene_boundaries = boundaries_utils.MultiSceneBoundaries(ds)
   return scene_boundaries

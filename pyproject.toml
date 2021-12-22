@@ -5,7 +5,7 @@ description = "Datasets for scene understanding and neural rendering."
 readme = "README.md"
 requires-python = ">=3.7"
 license = {file = "LICENSE"}
-authors = [{name = "Sunds team", email="sunds@google.com>"}]
+authors = [{name = "Sunds team", email="sunds@google.com"}]
 classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3 :: Only",
@@ -17,12 +17,12 @@ keywords = ["datasets", "scene-understanding", "neural rendering", "nerf"]
 
 dependencies = [
     "absl-py",
+    "etils[etqdm]",
     "numpy>=1.17",
     # We do not explicitly add tensorflow as deps to allow users
     # choose between `tensorflow` / `tf-nightly`
     # tensorflow = ">=2.4"
     "tensorflow_datasets>=4.4",
-    "tqdm",
     "typing_extensions",
 ]
 

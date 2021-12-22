@@ -19,4 +19,3 @@ from sunds.utils.file_utils import sunds_dir
 from sunds.utils.py_utils import map_fn
 from sunds.utils.tf_utils import interp
 from sunds.utils.tf_utils import random_choice
-from sunds.utils.tqdm_utils import tqdm
