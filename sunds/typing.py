@@ -17,6 +17,7 @@
 
 from typing import Any, Iterable, List, Union
 
+from etils import epath
 import numpy as np
 import tensorflow as tf
 import tensorflow_datasets as tfds
@@ -28,10 +29,6 @@ TreeDict = tfds.typing.TreeDict
 
 Json = tfds.typing.Json
 JsonValue = tfds.typing.JsonValue
-
-# ==== Path types ====
-
-PathLike = tfds.typing.PathLike
 
 # ==== Tensor types ====
 
@@ -67,7 +64,7 @@ FeatureSpecsHint = TreeDict[_FeatureSpecHintElem]
 # * `/path/to/labels.txt`: Path to label files (one label per line)
 # * `int`: Number of labels (if label strings unknown)
 # * `None`: if label info unknown
-LabelArg = Union[List[str], PathLike, int, None]
+LabelArg = Union[List[str], epath.PathLike, int, None]
 
 FeaturesOrBool = Union[FeatureSpecs, bool]
 LabelOrFeaturesOrBool = Union[LabelArg, FeaturesOrBool]

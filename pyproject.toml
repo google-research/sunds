@@ -17,7 +17,7 @@ keywords = ["datasets", "scene-understanding", "neural rendering", "nerf"]
 
 dependencies = [
     "absl-py",
-    "etils[etqdm]",
+    "etils[epath,etqdm]",
     "numpy>=1.17",
     # We do not explicitly add tensorflow as deps to allow users
     # choose between `tensorflow` / `tf-nightly`
