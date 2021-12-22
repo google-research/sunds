@@ -1,6 +1,7 @@
 name: Unittests
 
-on: push
+# Allow to trigger the workflow manually (e.g. when pushing changes to `etils`)
+on: [push, workflow_dispatch]
 
 jobs:
   pytest-job:
