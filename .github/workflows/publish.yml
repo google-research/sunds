@@ -23,11 +23,12 @@ jobs:
     - uses: actions/setup-python@v2
       with:
         python-version: 3.7
-    - run: python -m pip install poetry
 
     # Publish the package
-    - run: poetry build
-    - run: poetry publish
+    - run: pip install build twine
+    - run: python -m build
+    - run: twine check dist/*
+    - run: twine upload dist/*
       env:
-        POETRY_HTTP_BASIC_PYPI_USERNAME: __token__
-        POETRY_HTTP_BASIC_PYPI_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}
+        TWINE_USERNAME: __token__
+        TWINE_PASSWORD: ${{ secrets.PYPI_API_TOKEN }}

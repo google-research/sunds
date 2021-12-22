@@ -1,34 +1,43 @@
-[tool.poetry]
+[project]
 name = "sunds"
-version = "0.3.0"
-description = "Datasets for scene understanding"
-authors = ["Sunds team <sunds@google.com>"]
-license = "Apache-2.0"
-homepage = "https://github.com/google-research/sunds"
-repository = "https://github.com/google-research/sunds"
-keywords = ["datasets", "scene-understanding"]
+version = "0.4.0"
+description = "Datasets for scene understanding and neural rendering."
+readme = "README.md"
+requires-python = ">=3.7"
+license = {file = "LICENSE"}
+authors = [{name = "Sunds team", email="sunds@google.com>"}]
 classifiers = [
-    # Note: Python and license automatically added
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: OSI Approved :: Apache Software License",
+    # Note: Python and license automatically added by some tools
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+keywords = ["datasets", "scene-understanding", "neural rendering", "nerf"]
 
-[tool.poetry.dependencies]
-python = "^3.7"
-absl-py = "*"
-numpy = ">=1.17"
-# We do not explicitly add tensorflow as deps to allow users
-# choose between `tensorflow` / `tf-nightly`
-# tensorflow = ">=2.4"
-tensorflow_datasets = ">=4.4"
-tqdm = "*"
-typing_extensions = "*"
+dependencies = [
+    "absl-py",
+    "numpy>=1.17",
+    # We do not explicitly add tensorflow as deps to allow users
+    # choose between `tensorflow` / `tf-nightly`
+    # tensorflow = ">=2.4"
+    "tensorflow_datasets>=4.4",
+    "tqdm",
+    "typing_extensions",
+]
 
-[tool.poetry.dev-dependencies]
-pytest = ">=3.4"
-pytest-xdist = "*"
-# Optional deps required for specific datasets
-pillow = "*"
+[project.urls]
+homepage = "https://github.com/google-research/sunds"
+repository = "https://github.com/google-research/sunds"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=3.4",
+    "pytest-xdist",
+    # Optional deps required for specific datasets
+    "pillow",
+]
 
 [build-system]
-requires = ["poetry-core>=1.1.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["flit_core >=3.5,<4"]
+build-backend = "flit_core.buildapi"
