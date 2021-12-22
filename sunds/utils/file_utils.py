@@ -17,20 +17,10 @@
 import functools
 import typing
 
-import tensorflow_datasets as tfds
-
-# TODO(epot): Should move the pathlib-abstraction to a self-contained
-# library
-# pathlib-like abstraction
-Path = tfds.core.ReadWritePath
-
-# Convert a resource path to write path.
-# Used for automated scripts which write to sunds/
-write_path = tfds.core.utils.to_write_path
+from etils import epath
 
 
 @functools.lru_cache()
-def sunds_dir() -> Path:
+def sunds_dir() -> epath.Path:
   """Root directory for `sunds/`."""
-  path = tfds.core.utils.resource_path('sunds')
-  return typing.cast(Path, path)
+  return epath.resource_path('sunds')

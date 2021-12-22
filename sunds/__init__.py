@@ -24,4 +24,3 @@ from sunds.core import specs
 from sunds.core import specs_utils
 from sunds.core.load_utils import builder
 from sunds.core.load_utils import load
-from sunds.utils.file_utils import Path

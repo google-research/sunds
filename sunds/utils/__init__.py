@@ -14,7 +14,6 @@
 
 """Utils."""
 
-from sunds.utils.file_utils import Path
 from sunds.utils.file_utils import sunds_dir
 from sunds.utils.py_utils import map_fn
 from sunds.utils.tf_utils import interp

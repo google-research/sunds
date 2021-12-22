@@ -20,7 +20,7 @@ Primitive operations to load a dataset specs.
 import typing
 from typing import Callable, Optional, Union
 
-from sunds import utils
+from etils import epath
 from sunds.core import tasks as tasks_lib
 from sunds.typing import Split, Tree  # pylint: disable=g-multiple-import
 import tensorflow as tf
@@ -130,9 +130,9 @@ class DatasetBuilder:
     return typing.cast(tfds.core.DatasetBuilder, self._frame_builder)
 
   @property
-  def data_dir(self) -> utils.Path:
+  def data_dir(self) -> epath.Path:
     """Root directory of the frame/scene builder."""
-    return utils.Path(self._frame_builder._data_dir_root)  # pylint: disable=protected-access
+    return epath.Path(self._frame_builder._data_dir_root)  # pylint: disable=protected-access
 
   def _validate(self) -> None:
     # Only validate if the 2 builders have been loaded.

@@ -16,6 +16,7 @@
 
 from typing import Iterator
 
+from etils import epath
 import pytest
 import sunds
 import tensorflow as tf
@@ -46,11 +47,11 @@ class DummyFrameTask(sunds.core.FrameTask):
 @pytest.fixture
 def lego_data_dir(
     lego_builder: sunds.core.DatasetBuilder,
-) -> Iterator[sunds.Path]:
+) -> Iterator[epath.Path]:
   yield lego_builder._scene_builder.data_path.parent.parent.parent
 
 
-def test_load(lego_data_dir: sunds.Path):  # pylint: disable=redefined-outer-name
+def test_load(lego_data_dir: epath.Path):  # pylint: disable=redefined-outer-name
   ds = sunds.load(
       'nerf_synthetic/lego',
       split='train',
@@ -61,7 +62,7 @@ def test_load(lego_data_dir: sunds.Path):  # pylint: disable=redefined-outer-nam
   assert 'scene_name' in ds.element_spec
 
 
-def test_load_no_task(lego_data_dir: sunds.Path):  # pylint: disable=redefined-outer-name
+def test_load_no_task(lego_data_dir: epath.Path):  # pylint: disable=redefined-outer-name
   ds = sunds.load(
       'nerf_synthetic/lego',
       split='train',
@@ -72,7 +73,7 @@ def test_load_no_task(lego_data_dir: sunds.Path):  # pylint: disable=redefined-o
   assert 'cameras' in ds.element_spec
 
 
-def test_load_kwargs(lego_data_dir: sunds.Path):  # pylint: disable=redefined-outer-name
+def test_load_kwargs(lego_data_dir: epath.Path):  # pylint: disable=redefined-outer-name
   ds = sunds.load(
       'nerf_synthetic/lego',
       split='train',
@@ -84,7 +85,7 @@ def test_load_kwargs(lego_data_dir: sunds.Path):  # pylint: disable=redefined-ou
   assert 'tfds_id' in ds.element_spec
 
 
-def test_builder(lego_data_dir: sunds.Path):  # pylint: disable=redefined-outer-name
+def test_builder(lego_data_dir: epath.Path):  # pylint: disable=redefined-outer-name
   builder = sunds.builder('nerf_synthetic/lego', data_dir=lego_data_dir)
   ds = builder.as_dataset(split='train', task=DummyTask())
   assert isinstance(ds, tf.data.Dataset)

@@ -17,6 +17,7 @@
 import json
 from typing import Any, Dict
 
+from etils import epath
 import numpy as np
 import sunds
 from sunds.datasets.nerf_synthetic import builder_utils
@@ -59,7 +60,7 @@ class NerfSyntheticScenes(tfds.core.GeneratorBasedBuilder):
             self._generate_examples(split_name='val', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
     }
 
-  def _generate_examples(self, scene_dir: sunds.Path, split_name: str):
+  def _generate_examples(self, scene_dir: epath.Path, split_name: str):
     scene_name = scene_dir.name
     scene_path = scene_dir / f'transforms_{split_name}.json'
     scene_data = json.loads(scene_path.read_text())
