@@ -94,6 +94,7 @@ def camera_spec(
     *,
     color_image: FeaturesOrBool = False,
     category_image: LabelOrFeaturesOrBool = False,
+    instance_image: LabelOrFeaturesOrBool = False,
     depth_image: FeaturesOrBool = False,
     camera_rays: FeaturesOrBool = False,
     img_shape: Tuple[Dim, Dim] = (None, None),
@@ -111,9 +112,10 @@ def camera_spec(
   Args:
     color_image: Rgb color image is stored.
     category_image: Category segmentation label image.
+    instance_image: Object instance ids.
     depth_image: depth image is stored.
     camera_rays: The given camera specs.
-    img_shape: The (h, w) image shape
+    img_shape: The (h, w) image shape.
 
   Returns:
     A composite `tfds` feature defining the specification of camera data.
@@ -136,6 +138,12 @@ def camera_spec(
   spec.maybe_set(
       'category_image',
       category_image,
+      spec_dict.labeled_image(shape=(*img_shape, 1)),
+  )
+  # Object instance id data.
+  spec.maybe_set(
+      'instance_image',
+      instance_image,
       spec_dict.labeled_image(shape=(*img_shape, 1)),
   )
   # Depth image.
