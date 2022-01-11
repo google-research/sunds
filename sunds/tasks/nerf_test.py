@@ -222,12 +222,13 @@ def test_nerf_additional_specs(
   ds = lego_builder.as_dataset(
       split='train',
       task=sunds.tasks.Nerf(
-          additional_frame_specs={'timestamp'},
+          additional_frame_specs={'timestamp', 'pose'},
           additional_camera_specs={'intrinsics'},
           yield_mode=yield_mode,
       ),
   )
   assert 'timestamp' in ds.element_spec
+  assert 'pose' in ds.element_spec
   if yield_mode == 'dict':
     assert 'intrinsics' in ds.element_spec['cameras']['default_camera']
   else:

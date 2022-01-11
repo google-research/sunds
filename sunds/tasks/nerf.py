@@ -200,7 +200,10 @@ class Nerf(core.FrameTask):
 
     # Eventually include rays (if not included)
     ds = ds.map(
-        _add_rays(additional_camera_specs=self.additional_camera_specs),  # pylint: disable=no-value-for-parameter
+        _add_rays(  # pylint: disable=no-value-for-parameter
+            additional_frame_specs=self.additional_frame_specs,
+            additional_camera_specs=self.additional_camera_specs,
+        ),
         num_parallel_calls=tf.data.AUTOTUNE,
     )
 
@@ -242,11 +245,16 @@ class Nerf(core.FrameTask):
 def _add_rays(
     frame: TensorDict,
     *,
+    additional_frame_specs: FeatureSpecsHint,
     additional_camera_specs: FeatureSpecsHint,
 ) -> TensorDict:
   """Add the rays on all camera images."""
+  if 'pose' in additional_frame_specs:
+    pose = frame['pose']
+  else:
+    pose = frame.pop('pose')
   # Get frame to scene transform.
-  scene_from_frame = tf_geometry.Isometry(**frame.pop('pose'))
+  scene_from_frame = tf_geometry.Isometry(**pose)
 
   cameras = {}
   # Compute the rays for each camera
