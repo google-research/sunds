@@ -296,7 +296,7 @@ def _add_rays_single_cam(
     tf.debugging.assert_near(tangential_distortion,
                              tf.zeros_like(tangential_distortion))
 
-    h, w, _ = camera_data['color_image'].shape
+    h, w, _ = camera_data['color_image'].shape  # pytype: disable=attribute-error  # allow-recursive-types
 
     # Compute camera pose w.r.t scene (camera to scene transform).
     camera_from_frame = tf_geometry.Isometry(**camera_data['extrinsics'])
@@ -536,7 +536,7 @@ def _clone_static_fields(ex: TensorDict,) -> TensorDict:
     Modified version of `ex` with `*_name` features cloned once per pixel.
   """
   # Identify batch shape.
-  batch_shape: tf.TensorShape = ex['color_image'].shape[0:-1]
+  batch_shape: tf.TensorShape = ex['color_image'].shape[0:-1]  # pytype: disable=attribute-error  # allow-recursive-types
 
   # TODO(duckworthd): Duplicate ALL static fields, including those specified
   # in additional_frame_specs.
