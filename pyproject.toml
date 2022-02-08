@@ -1,6 +1,6 @@
 [project]
 name = "sunds"
-version = "0.4.0"
+version = "0.4.1"
 description = "Datasets for scene understanding and neural rendering."
 readme = "README.md"
 requires-python = ">=3.7"
@@ -17,7 +17,7 @@ keywords = ["datasets", "scene-understanding", "neural rendering", "nerf"]
 
 dependencies = [
     "absl-py",
-    "etils[epath,etqdm]",
+    "etils[epath-no-tf,etqdm]",
     "numpy>=1.17",
     # We do not explicitly add tensorflow as deps to allow users
     # choose between `tensorflow` / `tf-nightly`
