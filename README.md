@@ -13,7 +13,7 @@ object detection, semantic segmentation, nerf rendering,...). It provides:
 ```python
 import sunds
 
-ds = sunds.load('nerf_synthetic/lego', split='train', task=sunds.task.Nerf())
+ds = sunds.load('nerf_synthetic/lego', split='train', task=sunds.tasks.Nerf())
 for ex in ds:
   ex['ray_origin']
 ```

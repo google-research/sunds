@@ -27,18 +27,26 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 
-def test_nerf(lego_builder: sunds.core.DatasetBuilder):
-  ds = lego_builder.as_dataset(split='train', task=sunds.tasks.Nerf())
+@pytest.mark.parametrize('add_name', [False, True], ids=['noname', 'name'])
+def test_nerf(lego_builder: sunds.core.DatasetBuilder, add_name: bool):
+  ds = lego_builder.as_dataset(
+      split='train',
+      task=sunds.tasks.Nerf(add_name=add_name),
+  )
   assert isinstance(ds, tf.data.Dataset)
   img_shape = (800, 800)
-  assert ds.element_spec == {
+  spec = {
       'ray_directions': tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.float32),
       'ray_origins': tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.float32),
       'color_image': tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.uint8),
-      'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
-      'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
-      'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
   }
+  if add_name:
+    spec.update({
+        'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+        'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+        'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
+    })
+  assert ds.element_spec == spec
   list(ds)  # Pipeline can be executed
 
 
@@ -52,26 +60,33 @@ def test_nerf_frame_only(lego_builder_frame_only: sunds.core.DatasetBuilder):
     _ = builder.scene_builder.info  # Loading scene raise error
 
 
-def test_nerf_tfds_id(lego_builder: sunds.core.DatasetBuilder):
+@pytest.mark.parametrize('add_name', [False, True], ids=['noname', 'name'])
+def test_nerf_tfds_id(lego_builder: sunds.core.DatasetBuilder, add_name: bool):
   ds = lego_builder.as_dataset(
       split='train',
-      task=sunds.tasks.Nerf(),
+      task=sunds.tasks.Nerf(add_name=add_name),
       read_config=tfds.ReadConfig(add_tfds_id=True),
   )
   assert isinstance(ds, tf.data.Dataset)
   img_shape = (800, 800)
-  assert ds.element_spec == {
+  spec = {
       'ray_directions': tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.float32),
       'ray_origins': tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.float32),
       'color_image': tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.uint8),
-      'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
-      'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
-      'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
       'tfds_id': tf.TensorSpec(shape=(), dtype=tf.string),
   }
+  if add_name:
+    spec.update({
+        'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+        'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+        'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
+    })
+
+  assert ds.element_spec == spec
   list(ds)  # Pipeline can be executed
 
 
+@pytest.mark.parametrize('add_name', [False, True], ids=['noname', 'name'])
 @pytest.mark.parametrize(
     'yield_mode, batch_shape',
     [
@@ -84,38 +99,44 @@ def test_nerf_batch_shape(
     lego_builder: sunds.core.DatasetBuilder,
     yield_mode: str,
     batch_shape: tuple[int, ...],
+    add_name: bool,
 ):
   ds = lego_builder.as_dataset(
       split='train',
-      task=sunds.tasks.Nerf(yield_mode=yield_mode),
+      task=sunds.tasks.Nerf(yield_mode=yield_mode, add_name=add_name),
   )
   assert isinstance(ds, tf.data.Dataset)
   camera_shape = (1,) if yield_mode == 'stacked' else ()
-  assert ds.element_spec == {
+  spec = {
       'ray_directions':
           tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.float32),
       'ray_origins':
           tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.float32),
       'color_image':
           tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.uint8),
-      'scene_name':
-          tf.TensorSpec(shape=(), dtype=tf.string),
-      'frame_name':
-          tf.TensorSpec(shape=(), dtype=tf.string),
-      'camera_name':
-          tf.TensorSpec(shape=camera_shape, dtype=tf.string),
   }
+  if add_name:
+    spec.update({
+        'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+        'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+        'camera_name': tf.TensorSpec(shape=camera_shape, dtype=tf.string),
+    })
+  assert ds.element_spec == spec
   list(ds.take(4))  # Pipeline can be executed
 
 
-def test_nerf_yield_all_camera(lego_builder: sunds.core.DatasetBuilder):
+@pytest.mark.parametrize('add_name', [False, True], ids=['noname', 'name'])
+def test_nerf_yield_all_camera(
+    lego_builder: sunds.core.DatasetBuilder,
+    add_name: bool,
+):
   ds = lego_builder.as_dataset(
       split='train',
-      task=sunds.tasks.Nerf(yield_mode='dict'),
+      task=sunds.tasks.Nerf(yield_mode='dict', add_name=add_name),
   )
   assert isinstance(ds, tf.data.Dataset)
   img_shape = (800, 800)
-  assert ds.element_spec == {
+  spec = {
       'cameras': {
           'default_camera': {  # Default camera
               'ray_directions':
@@ -126,16 +147,20 @@ def test_nerf_yield_all_camera(lego_builder: sunds.core.DatasetBuilder):
                   tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.uint8),
           },
       },
-      'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
-      'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
   }
+  if add_name:
+    spec.update({
+        'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+        'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+    })
+  assert ds.element_spec == spec
   list(ds)  # Pipeline can be executed
 
 
 def test_nerf_normalize_rays(lego_builder: sunds.core.DatasetBuilder):
   ds = lego_builder.as_dataset(
       split='train',
-      task=sunds.tasks.Nerf(normalize_rays=True),
+      task=sunds.tasks.Nerf(normalize_rays=True, add_name=True),
   )
   list(ds)  # Pipeline can be executed
 
@@ -237,6 +262,7 @@ def test_nerf_additional_specs(
   list(ds)  # Pipeline can be executed
 
 
+@pytest.mark.parametrize('add_name', [False, True], ids=['noname', 'name'])
 @pytest.mark.parametrize(
     'normalize_rays', [False, True], ids=['nonorm', 'norm'])
 @pytest.mark.parametrize(
@@ -252,6 +278,7 @@ def test_all_flags(
     yield_mode: str,
     additional_frame_specs: FeatureSpecsHint,
     remove_invalid_rays: bool,
+    add_name: bool,
 ):
   """Test which checks that all combinations of options work together."""
   # Some conbinaitions are incompatible
@@ -272,6 +299,7 @@ def test_all_flags(
             normalize_rays=normalize_rays,
             additional_frame_specs=additional_frame_specs,
             remove_invalid_rays=remove_invalid_rays,
+            add_name=add_name,
         ),
     )
     if not remove_invalid_rays:

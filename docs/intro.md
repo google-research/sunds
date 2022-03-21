@@ -94,7 +94,7 @@ the image level.
 The easiest way to get started training a model is to use one of the existing
 `sunds.task`. Look at the documentation for specific task:
 
-*   [sunds.task.Nerf](nerf.md): To extract ray origins/positions as well as
+*   [sunds.tasks.Nerf](nerf.md): To extract ray origins/positions as well as
     applying various normalizations.
 
 ### Creating a task

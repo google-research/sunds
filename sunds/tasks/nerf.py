@@ -18,6 +18,8 @@ import dataclasses
 import enum
 from typing import Any, Callable, Optional, Tuple, Union
 
+from etils import edc
+from etils import epy
 from etils import etqdm
 from sunds import core
 from sunds import utils
@@ -29,7 +31,7 @@ import tensorflow as tf
 import tensorflow_datasets as tfds
 
 
-class YieldMode(enum.Enum):
+class YieldMode(epy.StrEnum):
   """Define the example structure yield by `tf.data.Dataset`.
 
   Attributes:
@@ -40,11 +42,6 @@ class YieldMode(enum.Enum):
     DICT: The example contain the dict of all cameras (
       `'cameras': {'camera0': {'ray_origins': ...}, 'camera1': ...}`).
   """
-
-  # TODO(epot): Migrate to coutils.epy.EnumStr
-  def _generate_next_value_(name, start, count, last_values):  # pylint: disable=no-self-argument
-    return name.lower()
-
   RAY = enum.auto()
   IMAGE = enum.auto()
   STACKED = enum.auto()
@@ -73,6 +70,7 @@ def _camera_specs(
   return spec
 
 
+@edc.dataclass(kw_only=True)
 @dataclasses.dataclass(frozen=True)
 class CenterNormalizeParams:
   """Normalization params for centering.
@@ -90,6 +88,7 @@ class CenterNormalizeParams:
   jitter: float = 3.0
 
 
+@edc.dataclass(kw_only=True)
 @dataclasses.dataclass(frozen=True)
 class Nerf(core.FrameTask):
   """Nerf-like processing.
@@ -101,9 +100,6 @@ class Nerf(core.FrameTask):
       'ray_origins': tf.Tensor(shape=(*batch_shape, 3), dtype=tf.float32),
       'ray_directions': tf.Tensor(shape=(*batch_shape, 3), dtype=tf.float32),
       'color_image': tf.Tensor(shape=(*batch_shape, 3), dtype=tf.uint8),
-      'scene_name': tf.Tensor(shape=(1,), dtype=tf.string),
-      'frame_name': tf.Tensor(shape=(1,), dtype=tf.string),
-      'camera_name': tf.Tensor(shape=(1,), dtype=tf.string),
   }
   ```
 
@@ -135,6 +131,8 @@ class Nerf(core.FrameTask):
     additional_frame_specs: Additional features specs to include. Those features
       will be forwarded as-is (without any transformation). Should not contain
       any camera fields.
+    add_name: If `True`, add the `scene_name`, `frame_name`, `camera_name`
+      to the example `dict`.
   """
   yield_mode: Union[str, YieldMode] = YieldMode.IMAGE
   normalize_rays: Union[bool, CenterNormalizeParams] = False
@@ -143,6 +141,7 @@ class Nerf(core.FrameTask):
       default_factory=dict)
   additional_frame_specs: FeatureSpecsHint = dataclasses.field(
       default_factory=dict)
+  add_name: bool = False
 
   def __post_init__(self):
     # Normalize arguments
@@ -187,6 +186,8 @@ class Nerf(core.FrameTask):
             self.full_frame_specs['cameras'].items()
         },
     }
+    if self.add_name:
+      curr_specs.update()
     curr_specs.update(self.additional_frame_specs)
     return curr_specs
 
@@ -216,11 +217,15 @@ class Nerf(core.FrameTask):
           scene_builder=self.scene_builder,
       )
 
+    if not self.add_name:  # pop frame/scene names
+      ds = ds.map(
+          _pop_name_keys(additional_frame_specs=self.additional_frame_specs))  # pylint: disable=no-value-for-parameter
+
     # Eventually flatten the camera, images
     if self.yield_mode in {YieldMode.RAY, YieldMode.IMAGE}:
-      ds = _flatten_camera_dim_ds(ds)
+      ds = _flatten_camera_dim_ds(ds, add_name=self.add_name)
     elif self.yield_mode == YieldMode.STACKED:
-      ds = ds.map(_stack_cameras)
+      ds = ds.map(_stack_cameras(add_name=self.add_name))  # pylint: disable=no-value-for-parameter
 
     # Eventually flatten the images. Batch size: `(h, w)` -> `()`
     if self.yield_mode == YieldMode.RAY:
@@ -229,7 +234,11 @@ class Nerf(core.FrameTask):
             'Additional frame specs not compatible with YieldMode.RAY. '
             'Please open a GitHub issue if needed.')
       # Copy static fields (scene_name, frame_name, ...) to each ray.
-      ds = ds.map(_clone_static_fields)
+      ds = ds.map(
+          _clone_static_fields(  # pylint: disable=no-value-for-parameter
+              add_name=self.add_name,
+              additional_frame_specs=self.additional_frame_specs,
+          ))
 
       # Remove (H, W, ...) part of shape.
       ds = ds.unbatch().unbatch()
@@ -454,19 +463,24 @@ def _apply_to_all_cameras(
   return ex
 
 
-def _stack_cameras(frame: TensorDict) -> TensorDict:
+@utils.map_fn
+def _stack_cameras(frame: TensorDict, *, add_name: bool) -> TensorDict:
   """Batch camera together."""
-  frame, cameras = _extract_static_and_camera_dict(frame)
+  frame, cameras = _extract_static_and_camera_dict(frame, add_name=add_name)
   assert not set(frame).intersection(cameras)
   return {**frame, **cameras}
 
 
-def _flatten_camera_dim_ds(ds: tf.data.Dataset,) -> tf.data.Dataset:
+def _flatten_camera_dim_ds(
+    ds: tf.data.Dataset,
+    *,
+    add_name: bool,
+) -> tf.data.Dataset:
   """Yield camera individually."""
   num_elem = len(ds)
   num_cameras = len(ds.element_spec['cameras'])
   ds = ds.interleave(
-      _flatten_camera_dim,
+      _flatten_camera_dim(add_name=add_name),  # pylint: disable=no-value-for-parameter
       cycle_length=16,  # Hardcoded values for determinism
       block_length=16,
       num_parallel_calls=tf.data.AUTOTUNE,
@@ -478,9 +492,13 @@ def _flatten_camera_dim_ds(ds: tf.data.Dataset,) -> tf.data.Dataset:
 
 
 @utils.map_fn
-def _flatten_camera_dim(frame: TensorDict) -> tf.data.Dataset:
+def _flatten_camera_dim(
+    frame: TensorDict,
+    *,
+    add_name: bool,
+) -> tf.data.Dataset:
   """Add the rays on all camera images."""
-  frame, cameras = _extract_static_and_camera_dict(frame)
+  frame, cameras = _extract_static_and_camera_dict(frame, add_name=add_name)
   return _ds_merge_dict(
       slices=cameras,
       static=frame,
@@ -488,7 +506,10 @@ def _flatten_camera_dim(frame: TensorDict) -> tf.data.Dataset:
 
 
 def _extract_static_and_camera_dict(
-    frame: TensorDict) -> Tuple[TensorDict, TensorDict]:
+    frame: TensorDict,
+    *,
+    add_name: bool,
+) -> Tuple[TensorDict, TensorDict]:
   """Extract the static features, and stack the camera features."""
   frame = dict(frame)
   cameras = frame.pop('cameras')
@@ -496,7 +517,8 @@ def _extract_static_and_camera_dict(
 
   # Transpose list[dict] into dict[list]
   cameras = tf.nest.map_structure(lambda *args: list(args), *cameras)
-  cameras['camera_name'] = tf.convert_to_tensor(camera_names)
+  if add_name:
+    cameras['camera_name'] = tf.convert_to_tensor(camera_names)
   return frame, cameras
 
 
@@ -525,12 +547,19 @@ def _ds_merge_dict(
 
 
 @utils.map_fn
-def _clone_static_fields(ex: TensorDict,) -> TensorDict:
+def _clone_static_fields(
+    ex: TensorDict,
+    *,
+    add_name: bool,
+    additional_frame_specs: FeatureSpecsHint,
+) -> TensorDict:
   """Clone static fields to each ray.
 
   Args:
     ex: A single-camera or multi-camera example. Must have the following fields
       -- frame_name, scene_name.
+    add_name: Forwarded from `Nerf.add_name`
+    additional_frame_specs: Forwarded from `Nerf.additional_frame_specs`
 
   Returns:
     Modified version of `ex` with `*_name` features cloned once per pixel.
@@ -538,15 +567,31 @@ def _clone_static_fields(ex: TensorDict,) -> TensorDict:
   # Identify batch shape.
   batch_shape: tf.TensorShape = ex['color_image'].shape[0:-1]  # pytype: disable=attribute-error  # allow-recursive-types
 
-  # TODO(duckworthd): Duplicate ALL static fields, including those specified
-  # in additional_frame_specs.
+  # TODO(epot): Is there a better way to detect static fields ?
   def _clone(v):
     return tf.fill(batch_shape, v)
 
   # Clone individual fields.
-  ex['scene_name'] = _clone(ex['scene_name'])
-  ex['frame_name'] = _clone(ex['frame_name'])
-  ex['camera_name'] = _clone(ex['camera_name'])
+  static_fields = set(additional_frame_specs)
+  if add_name:
+    static_fields.update({'scene_name', 'frame_name', 'camera_name'})
+  for name in static_fields:
+    ex[name] = _clone(ex[name])
+  return ex
+
+
+@utils.map_fn
+def _pop_name_keys(
+    ex: TensorDict,
+    *,
+    additional_frame_specs: FeatureSpecsHint,
+) -> TensorDict:
+  """Remove the scene and frame name keys."""
+  for name in {'scene_name', 'frame_name'}:
+    if name in additional_frame_specs:  # If explicitly requested, keep it.
+      continue
+    else:
+      ex.pop(name)
   return ex
 
 

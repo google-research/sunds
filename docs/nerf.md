@@ -6,7 +6,7 @@
 for nerf-based model, including:
 
 *   Auto-compute the rays origins/directions if not present in the dataset.
-*   Normalize the rays acording to the scene bounding boxes
+*   Normalize the rays according to the scene bounding boxes
 
 By default, `sunds.tasks.Nerf` returns the following fields:
 
@@ -18,10 +18,6 @@ ds.element_specs == {
     'ray_directions': tf.TensorSpec(shape=(h, w, 3), dtype=tf.float32),
     # RGB values
     'color_image': tf.TensorSpec(shape=(h, w, 3), dtype=tf.uint8),
-    # Additional metadata to identify the image
-    'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
-    'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
-    'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
 }
 ```
 
@@ -42,9 +38,6 @@ ds.element_specs.shape == {
     'ray_origins': (*batch_shape, 3),
     'ray_directions': (*batch_shape, 3),
     'color_image': (*batch_shape, 3),
-    'scene_name': tf.string,
-    'frame_name': tf.string,
-    'camera_name': tf.string,
 }
 
 ds = ds.shuffle(ray_buffer_size)  # Shuffle rays across images
@@ -71,13 +64,10 @@ ds.element_specs.shape == {
         'back_camera': {
             'ray_origins': (h, w, 3),
             'ray_directions': (h, w, 3),
-            ...
+            'color_image': (h, w, 3),
         },
         ...
     },
-    'scene_name': (),
-    'frame_name': (),
-    'camera_name': (),
 }
 ```
 
@@ -90,7 +80,7 @@ By default, the rays are returned as-is (without any transformation). Setting
     objects within the scenes are contained inside the `[-1, 1]` 3D box (Note
     that the cameras can still be outside this `[-1, 1]` box). This can be used
     by model to sample points only within this range.
-*   Euclidian normalization: Applying `tf.norm` on the rays directions.
+*   Euclidean normalization: Applying `tf.norm` on the rays directions.
 
 For more complex normalization, `normalize_rays` can also be a custom object. Please contact us (e.g. open a GitHub issue) if you need specific features.
 
@@ -116,9 +106,6 @@ ds.element_specs == {
     'ray_origins': tf.TensorSpec(shape=(h, w, 3), dtype=tf.float32),
     'ray_directions': tf.TensorSpec(shape=(h, w, 3), dtype=tf.float32),
     'color_image': tf.TensorSpec(shape=(h, w, 3), dtype=tf.uint8),
-    'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
-    'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
-    'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
     # Additional camera field returned
     'ray_directions': tf.TensorSpec(shape=(h, w, 3), dtype=tf.float32),
     'color_image': tf.TensorSpec(shape=(h, w, 3), dtype=tf.uint8),
@@ -129,3 +116,22 @@ ds.element_specs == {
 
 Nested feature selection is also supported. Accepted structure are the same as
 [`tfds.decode.PartialDecoding`](https://www.tensorflow.org/datasets/decode#only_decode_a_sub-set_of_the_features).
+
+### `add_name`
+
+If `True`, add the scene, frame, camera name to the returned dict:
+
+```python
+ds = sunds.load(..., task=sunds.tasks.Nerf(add_name=True))
+ds.element_specs == {
+    # Ray origin/direction
+    'ray_origins': tf.TensorSpec(shape=(h, w, 3), dtype=tf.float32),
+    'ray_directions': tf.TensorSpec(shape=(h, w, 3), dtype=tf.float32),
+    # RGB values
+    'color_image': tf.TensorSpec(shape=(h, w, 3), dtype=tf.uint8),
+    # Additional metadata to identify the image
+    'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+    'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+    'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
+}
+```
