@@ -105,6 +105,8 @@ class Camera(specs_base.SpecBase):
   extrinsics: Pose = dataclasses.field(default_factory=Pose.identity)
   color_image: Optional[Image] = None
   category_image: Optional[Image] = None
+  ray_directions: Optional[Array] = None
+  ray_origins: Optional[Array] = None
 
 
 @dataclasses.dataclass
