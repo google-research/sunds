@@ -28,7 +28,7 @@ statement is equivalent to:
 
 ```python
 builder = sunds.builder('nerf_synthetic/lego')
-ds = sunds.as_dataset(split='train', task=sunds.tasks.Nerf())
+ds = builder.as_dataset(split='train', task=sunds.tasks.Nerf())
 ```
 
 Like any `tf.data.Dataset`, you can apply additional transformation:
