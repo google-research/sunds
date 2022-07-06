@@ -1,6 +1,6 @@
 # Scene understanding datasets
 
-[![Unittests](https://github.com/google-research/sunds/actions/workflows/pytest.yml/badge.svg)](https://github.com/google-research/sunds/actions/workflows/pytest.yml)
+[![Unittests](https://github.com/google-research/sunds/actions/workflows/pytest_and_autopublish.yml/badge.svg)](https://github.com/google-research/sunds/actions/workflows/pytest_and_autopublish.yml)
 [![PyPI version](https://badge.fury.io/py/sunds.svg)](https://badge.fury.io/py/sunds)
 
 SunDs is a collection of ready-to-use datasets for scene understanding tasks (3d
