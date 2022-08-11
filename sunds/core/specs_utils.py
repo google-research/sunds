@@ -53,7 +53,7 @@ class Frame(specs_base.SpecBase):
   """Top-level frame."""
   scene_name: str
   frame_name: str
-  pose: 'Pose'
+  pose: Optional['Pose']
   cameras: Dict[str, 'Camera']
   timestamp: float = 0.0
 
@@ -101,12 +101,14 @@ class Pose(specs_base.SpecBase):
 @dataclasses.dataclass
 class Camera(specs_base.SpecBase):
   """Camera."""
-  intrinsics: 'CameraIntrinsics'
+  intrinsics: Optional['CameraIntrinsics'] = None
   extrinsics: Pose = dataclasses.field(default_factory=Pose.identity)
   color_image: Optional[Image] = None
   category_image: Optional[Image] = None
+  instance_image: Optional[Image] = None
   ray_directions: Optional[Array] = None
   ray_origins: Optional[Array] = None
+  depth_image: Optional[Image] = None
 
 
 @dataclasses.dataclass
