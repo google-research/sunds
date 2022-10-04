@@ -131,8 +131,8 @@ class Isometry:
     return np.squeeze(projected)
 
   def __mul__(
-      self, other: Union['Isometry',
-                         np.ndarray]) -> Union['Isometry', np.ndarray]:
+      self, other: Union['Isometry', np.ndarray]
+  ) -> Union['Isometry', np.ndarray]:
     """Returns the product of self with other i.e. `out = self * other`.
 
     This function can be used to transform point(s) or compose multiple

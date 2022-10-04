@@ -90,7 +90,8 @@ def interp(
 
   if axis != -1:
     raise NotImplementedError(
-        'Only last axis supported for now. Please send a feature request.')
+        'Only last axis supported for now. Please send a feature request.'
+    )
 
   # Normalize to array (to support broadcasting).
   # If inputs are static arguments (not `tf.Tensor`), use numpy arrays for
@@ -138,10 +139,12 @@ def random_choice(
   a = tf.convert_to_tensor(a)
   if replace:
     raise NotImplementedError(
-        'Only replace=False supported. You can use `tf.random.categorical.`')
+        'Only replace=False supported. You can use `tf.random.categorical.`'
+    )
   if len(a.shape) != 1:
     raise NotImplementedError(
-        '`random_choice` only support single dim tensors.')
+        '`random_choice` only support single dim tensors.'
+    )
 
   shape = (size,) if isinstance(size, int) else tuple(size)
   # TODO(py3.8): Replace by `math.prod`
@@ -150,7 +153,8 @@ def random_choice(
   if not replace and num_samples > num_values:
     raise ValueError(
         'Cannot take a larger sample than population when `replace=False`. '
-        f'{num_samples} > {num_values}')
+        f'{num_samples} > {num_values}'
+    )
 
   indices = tf.range(num_values)
   indices = tf.random.shuffle(indices)

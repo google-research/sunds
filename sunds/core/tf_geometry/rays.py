@@ -25,9 +25,11 @@ TensorLike = tf.types.experimental.TensorLike
 TensorDict = Dict[str, tf.Tensor]
 
 
-def rays_from_image_points(camera: cameras.CameraType,
-                           world_from_camera: isometry.Isometry,
-                           points_image: TensorLike):
+def rays_from_image_points(
+    camera: cameras.CameraType,
+    world_from_camera: isometry.Isometry,
+    points_image: TensorLike,
+):
   """Create bundle of rays passing through camera image points.
 
   Given a camera model, camera pose, and a set of 2D image points on the camera,
@@ -62,8 +64,9 @@ def rays_from_image_points(camera: cameras.CameraType,
   return _rays_from_directions(points_camera, world_from_camera)
 
 
-def rays_from_image_grid(camera: cameras.CameraType,
-                         world_from_camera: isometry.Isometry):
+def rays_from_image_grid(
+    camera: cameras.CameraType, world_from_camera: isometry.Isometry
+):
   """Create bundle of rays passing though all pixels of a camera image.
 
   Given a camera model, camera pose, this function creates a bundle of 3D rays
@@ -83,8 +86,9 @@ def rays_from_image_grid(camera: cameras.CameraType,
   return _rays_from_directions(camera.unproject(), world_from_camera)
 
 
-def _rays_from_directions(ray_directions: TensorLike,
-                          world_from_camera: isometry.Isometry):
+def _rays_from_directions(
+    ray_directions: TensorLike, world_from_camera: isometry.Isometry
+):
   """Convert rays in camera frame to world frame, now including their origins.
 
   Args:
@@ -105,10 +109,12 @@ def _rays_from_directions(ray_directions: TensorLike,
   return ray_origins, ray_directions
 
 
-def depth_samples_along_rays(near_depth: TensorLike,
-                             far_depth: TensorLike,
-                             num_samples_per_ray: int,
-                             method: str = 'linspace_depth') -> tf.Tensor:
+def depth_samples_along_rays(
+    near_depth: TensorLike,
+    far_depth: TensorLike,
+    num_samples_per_ray: int,
+    method: str = 'linspace_depth',
+) -> tf.Tensor:
   """Sample depths along rays.
 
   This function samples depth values in the range [near_depth, far_depth]. The
@@ -153,7 +159,8 @@ def depth_samples_along_rays(near_depth: TensorLike,
     depths = tf.linspace(near_depth, far_depth, num_samples_per_ray, axis=-1)
   elif method == 'linspace_disparity':
     depths = 1.0 / tf.linspace(
-        1.0 / far_depth, 1.0 / near_depth, num_samples_per_ray, axis=-1)
+        1.0 / far_depth, 1.0 / near_depth, num_samples_per_ray, axis=-1
+    )
     depths = tf.reverse(depths, axis=[-1])
   elif method == 'geomspace_depth':
     depths = tf.experimental.numpy.geomspace(
@@ -162,7 +169,8 @@ def depth_samples_along_rays(near_depth: TensorLike,
         num=num_samples_per_ray,
         endpoint=True,
         dtype=near_depth.dtype,
-        axis=-1)
+        axis=-1,
+    )
   else:
     raise NotImplementedError(f'Unknown method: {method}')
   return tf.expand_dims(depths, axis=-1)
@@ -218,9 +226,11 @@ def jitter_depth_samples_along_rays(point_depths: TensorLike) -> tf.Tensor:
   return bin_minimas + (bin_maximas - bin_minimas) * unscaled_jitter
 
 
-def point_samples_along_rays(ray_origins: TensorLike,
-                             ray_directions: TensorLike,
-                             point_depths: TensorLike) -> tf.Tensor:
+def point_samples_along_rays(
+    ray_origins: TensorLike,
+    ray_directions: TensorLike,
+    point_depths: TensorLike,
+) -> tf.Tensor:
   """Sample points along rays.
 
   This function samples 3D points along rays with provided depth values.
@@ -265,9 +275,13 @@ def point_samples_along_rays(ray_origins: TensorLike,
     Tensor with shape (..., num_samples_per_ray, 3) containing 3D point samples
     along each ray.
   """
-  tf.debugging.assert_shapes([(ray_origins, (..., 3)),
-                              (ray_directions, (..., 3)),
-                              (point_depths, (..., 'num_samples_per_ray', 1))])
+  tf.debugging.assert_shapes(
+      [
+          (ray_origins, (..., 3)),
+          (ray_directions, (..., 3)),
+          (point_depths, (..., 'num_samples_per_ray', 1)),
+      ]
+  )
   ray_origins = tf.expand_dims(ray_origins, axis=-2)
   ray_directions = tf.expand_dims(ray_directions, axis=-2)
   return ray_origins + point_depths * ray_directions

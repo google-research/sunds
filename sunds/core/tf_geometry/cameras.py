@@ -63,9 +63,9 @@ class AbstractCamera(abc.ABC):
     pass
 
   @abc.abstractmethod
-  def unproject(self,
-                points: Optional[TensorLike] = None,
-                to_rays: bool = True) -> tf.Tensor:
+  def unproject(
+      self, points: Optional[TensorLike] = None, to_rays: bool = True
+  ) -> tf.Tensor:
     """Unproject 2D pixel points in image space to camera space.
 
     Given a a set of 2d point coordinates in the camera image, this function
@@ -166,6 +166,7 @@ class PinholeCamera(AbstractCamera):
   pointcloud = camera.unproject(pixel_centers, to_rays=False) * depth
   ```
   """
+
   # 3x3 camera intrinsics matrix.
   K: TensorLike  # pylint: disable=invalid-name
   # Width of the camera image in pixels.
@@ -184,7 +185,8 @@ class PinholeCamera(AbstractCamera):
       image_width: int,
       image_height: int,
       horizontal_fov_in_degrees: float,
-      vertical_fov_in_degrees: Optional[float] = None) -> 'PinholeCamera':
+      vertical_fov_in_degrees: Optional[float] = None,
+  ) -> 'PinholeCamera':
     """Creates a `PinholeCamera` from field of view parameters.
 
     This `classmethod` provides a convenient way to construct an `PinholeCamera`
@@ -214,18 +216,22 @@ class PinholeCamera(AbstractCamera):
 
     def focal_length_from_fov(image_size, fov_in_degrees):
       fov_in_radians = tf.experimental.numpy.deg2rad(fov_in_degrees)
-      focal_length = .5 * image_size / tf.math.tan(.5 * fov_in_radians)
+      focal_length = 0.5 * image_size / tf.math.tan(0.5 * fov_in_radians)
       return tf.cast(focal_length, tf.float32)
 
     fx = focal_length_from_fov(image_width, horizontal_fov_in_degrees)
-    fy = fx if vertical_fov_in_degrees is None else focal_length_from_fov(
-        image_height, vertical_fov_in_degrees)
+    fy = (
+        fx
+        if vertical_fov_in_degrees is None
+        else focal_length_from_fov(image_height, vertical_fov_in_degrees)
+    )
 
     cx, cy = image_width / 2, image_height / 2
     return cls(
         image_width=image_width,
         image_height=image_height,
-        K=tf.convert_to_tensor([[fx, 0., cx], [0., fy, cy], [0., 0., 1.]]))
+        K=tf.convert_to_tensor([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]]),
+    )
 
   @classmethod
   def from_intrinsics(
@@ -270,7 +276,10 @@ class PinholeCamera(AbstractCamera):
     return cls(
         image_width=image_width,
         image_height=image_height,
-        K=tf.convert_to_tensor([[fx, skew, cx], [0., fy, cy], [0., 0., 1.]]))
+        K=tf.convert_to_tensor(
+            [[fx, skew, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]]
+        ),
+    )
 
   def project(self, points: TensorLike) -> tf.Tensor:
     """Project 3D points in camera frame to image frame.
@@ -294,12 +303,12 @@ class PinholeCamera(AbstractCamera):
       2D image projections in a `(..., 2)` tensor.
     """
     image_frame = tf.einsum('ij,...j->...i', self.K, points)
-    image_frame = (image_frame[..., :2] / image_frame[..., 2:3])
+    image_frame = image_frame[..., :2] / image_frame[..., 2:3]
     return image_frame
 
-  def unproject(self,
-                points: Optional[TensorLike] = None,
-                to_rays: bool = True) -> tf.Tensor:
+  def unproject(
+      self, points: Optional[TensorLike] = None, to_rays: bool = True
+  ) -> tf.Tensor:
     """Unproject 2D pixel points in image space to camera space.
 
     Given a a set of 2d point coordinates in the camera image, this functions
@@ -327,13 +336,15 @@ class PinholeCamera(AbstractCamera):
       points = self.pixel_centers()
 
     image_frame = tf.concat((points, tf.ones_like(points[..., 0:1])), axis=-1)
-    camera_frame = tf.einsum('ij,...j->...i', tf.linalg.inv(self.K),
-                             image_frame)
+    camera_frame = tf.einsum(
+        'ij,...j->...i', tf.linalg.inv(self.K), image_frame
+    )
     if to_rays:
       camera_frame, _ = tf.linalg.normalize(camera_frame, axis=-1)
     else:
       camera_frame = camera_frame / tf.expand_dims(
-          camera_frame[..., 2], axis=-1)
+          camera_frame[..., 2], axis=-1
+      )
     return camera_frame
 
   def pixel_centers(self) -> tf.Tensor:
@@ -351,5 +362,6 @@ class PinholeCamera(AbstractCamera):
       of shape `(image_height, image_width, 2)`.
     """
     image_grid = tf.meshgrid(
-        tf.range(self.image_width), tf.range(self.image_height), indexing='xy')
+        tf.range(self.image_width), tf.range(self.image_height), indexing='xy'
+    )
     return tf.cast(tf.stack(image_grid, axis=-1), dtype=tf.float32) + 0.5

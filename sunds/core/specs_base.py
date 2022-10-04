@@ -34,8 +34,10 @@ class SpecBase:
       if _isregistered(value):
         value = _asdict(value)
       elif (  # Recurse on dicts
-          isinstance(value, dict) and value and
-          _isregistered(next(iter(value.values())))):
+          isinstance(value, dict)
+          and value
+          and _isregistered(next(iter(value.values())))
+      ):
         value = {k: _asdict(v) for k, v in value.items()}
       elif isinstance(value, list) and value and _isregistered(value[0]):
         value = [_asdict(v) for v in value]  # Recurse on lists

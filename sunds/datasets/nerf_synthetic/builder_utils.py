@@ -64,8 +64,10 @@ CAMERA_NAME = 'default_camera'
 def camera_intrinsics(scene_data: Json) -> sunds.specs_utils.CameraIntrinsics:
   return sunds.specs_utils.CameraIntrinsics.from_fov(
       img_shape=IMG_SHAPE,
-      fov_in_degree=(scene_data['camera_angle_x'],
-                     scene_data['camera_angle_x']),
+      fov_in_degree=(
+          scene_data['camera_angle_x'],
+          scene_data['camera_angle_x'],
+      ),
   )
 
 
@@ -83,7 +85,8 @@ def frame(
       convension='blender',
   )
   camera = sunds.specs_utils.Camera(
-      intrinsics=intrinsics, color_image=color_image)
+      intrinsics=intrinsics, color_image=color_image
+  )
   return sunds.specs_utils.Frame(
       scene_name=scene_name,
       frame_name=frame_name,

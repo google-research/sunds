@@ -110,6 +110,7 @@ class DatasetBuilder:
     """
     if task is None:
       import sunds  # pylint: disable=g-import-not-at-top
+
       task = sunds.tasks.Frames()
     task = task.initialize(
         scene_builder=self.scene_builder,
@@ -139,9 +140,12 @@ class DatasetBuilder:
     if not self._scene_builder.loaded or not self._frame_builder.loaded:
       return
     # Ensure that scene and frame datasets match
-    if (self._scene_builder.info.full_name.split('/')[1:] !=
-        self._frame_builder.info.full_name.split('/')[1:]):
+    if (
+        self._scene_builder.info.full_name.split('/')[1:]
+        != self._frame_builder.info.full_name.split('/')[1:]
+    ):
       raise ValueError(
           f'Incompatible {self._scene_builder.info.full_name} and '
           f'{self._frame_builder.info.full_name}. Version and config should '
-          'match.')
+          'match.'
+      )
