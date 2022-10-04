@@ -18,7 +18,6 @@ from sunds import utils
 
 
 def test_map_fn():
-
   @utils.map_fn
   def add_prefix(val, *, prefix):
     return prefix + val

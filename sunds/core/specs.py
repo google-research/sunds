@@ -30,23 +30,26 @@ def scene_spec(
   """Scene spec definitions."""
   frames = dict(frames)
   frames.pop('scene_name')  # Clear the scene field
-  specs = spec_dict.SpecDict({
-      # A unique name 🔑 that identifies the scene.
-      'scene_name': tfds.features.Text(),
-      # A scene has several frames. This stores a lightweight information of all
-      # frames (without sensor data) in the scene. This can be used for random
-      # lookup of a particular frame from the `frame` store.
-      'frames': tfds.features.Sequence(frames),
-      # Scene bounding box 📦. This axis aligned bounding box can be used to
-      # represent the extent of the scene in its local coordinate frame.
-      'scene_box': aligned_box_3d_spec(),
-      # Nominal time ⏰ of the scene encoded as `RFC3339_full` format datetime
-      # string e.g. `1970-01-01 00:00:00.0 +0000`. All timestamps in `frame`
-      # level data are expected to be relative (elapsed time in seconds) to this
-      # nominal time. This field can be left unspecified for most datasets
-      # unless there is a need to explicitly get the absolute time point.
-      'nominal_time': tfds.features.Text(),
-  })
+  specs = spec_dict.SpecDict(
+      {
+          # A unique name 🔑 that identifies the scene.
+          'scene_name': tfds.features.Text(),
+          # A scene has several frames. This stores a lightweight information
+          # of all frames (without sensor data) in the scene. This can be used
+          # for random lookup of a particular frame from the `frame` store.
+          'frames': tfds.features.Sequence(frames),
+          # Scene bounding box 📦. This axis aligned bounding box can be used to
+          # represent the extent of the scene in its local coordinate frame.
+          'scene_box': aligned_box_3d_spec(),
+          # Nominal time ⏰ of the scene encoded as `RFC3339_full` format
+          # datetime string e.g. `1970-01-01 00:00:00.0 +0000`. All timestamps
+          # in `frame` level data are expected to be relative (elapsed time in
+          # seconds) to this nominal time. This field can be left unspecified
+          # for most datasets unless there is a need to explicitly get the
+          # absolute time point.
+          'nominal_time': tfds.features.Text(),
+      }
+  )
   # LiDAR point cloud.
   specs.maybe_set('point_cloud', point_cloud)
   return specs
@@ -120,14 +123,16 @@ def camera_spec(
   Returns:
     A composite `tfds` feature defining the specification of camera data.
   """
-  spec = spec_dict.SpecDict({
-      # Camera intrinsics.
-      'intrinsics': camera_intrinsics_spec(),
-      # Camera extrinsics w.r.t frame (frame to camera transform):
-      # X_{camera} = R * X_{frame} + t.
-      # If a camera is not posed, this can be left to `Identity`.
-      'extrinsics': pose_spec(),
-  })
+  spec = spec_dict.SpecDict(
+      {
+          # Camera intrinsics.
+          'intrinsics': camera_intrinsics_spec(),
+          # Camera extrinsics w.r.t frame (frame to camera transform):
+          # X_{camera} = R * X_{frame} + t.
+          # If a camera is not posed, this can be left to `Identity`.
+          'extrinsics': pose_spec(),
+      }
+  )
   # Color image data.
   spec.maybe_set(
       'color_image',
@@ -190,7 +195,7 @@ def camera_intrinsics_spec() -> FeatureSpecs:
           'radial': tfds.features.Tensor(shape=(3,), dtype=tf.float32),
           # Tangential distortion coefficients [p1, p2].
           'tangential': tfds.features.Tensor(shape=(2,), dtype=tf.float32),
-      }
+      },
   }
 
 
@@ -215,18 +220,16 @@ def camera_rays_spec(
 ) -> FeatureSpecs:
   """Specification for explicit camera rays."""
   return {
-      'ray_directions':
-          tfds.features.Tensor(
-              shape=(*img_shape, 3),
-              dtype=tf.float32,
-              encoding=encoding,
-          ),
-      'ray_origins':
-          tfds.features.Tensor(
-              shape=(*img_shape, 3),
-              dtype=tf.float32,
-              encoding=encoding,
-          ),
+      'ray_directions': tfds.features.Tensor(
+          shape=(*img_shape, 3),
+          dtype=tf.float32,
+          encoding=encoding,
+      ),
+      'ray_origins': tfds.features.Tensor(
+          shape=(*img_shape, 3),
+          dtype=tf.float32,
+          encoding=encoding,
+      ),
   }
 
 
@@ -249,14 +252,15 @@ def point_cloud_spec(
   # TODO(epot): Rather than using "None" for the first dimension of each Tensor,
   # use tfds.features.Sequence(per_point_feature). Also consider using
   # tfds.features.ClassLabel instead of int32 for semantic category.
-  result = spec_dict.SpecDict({
-      'positions':
-          tfds.features.Tensor(shape=(None, 3), dtype=tf.float32),
-      'point_identifiers':
-          tfds.features.Tensor(shape=(None, 1), dtype=tf.int64),
-      'timestamps':
-          tfds.features.Tensor(shape=(None, 1), dtype=tf.float32),
-  })
+  result = spec_dict.SpecDict(
+      {
+          'positions': tfds.features.Tensor(shape=(None, 3), dtype=tf.float32),
+          'point_identifiers': tfds.features.Tensor(
+              shape=(None, 1), dtype=tf.int64
+          ),
+          'timestamps': tfds.features.Tensor(shape=(None, 1), dtype=tf.float32),
+      }
+  )
   # TODO(epot): Replace by ClassLabel
   result.maybe_set(
       'category_labels',

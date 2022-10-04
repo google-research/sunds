@@ -36,12 +36,12 @@ class NerfSyntheticFrames(tfds.core.GeneratorBasedBuilder):
     """Dataset metadata."""
     features = sunds.specs.frame_spec(
         cameras={
-            builder_utils.CAMERA_NAME:
-                sunds.specs.camera_spec(
-                    color_image=True,
-                    img_shape=builder_utils.IMG_SHAPE,
-                ),
-        })
+            builder_utils.CAMERA_NAME: sunds.specs.camera_spec(
+                color_image=True,
+                img_shape=builder_utils.IMG_SHAPE,
+            ),
+        }
+    )
 
     return tfds.core.DatasetInfo(
         builder=self,
@@ -57,12 +57,13 @@ class NerfSyntheticFrames(tfds.core.GeneratorBasedBuilder):
     scene_dir = scene_dir / 'nerf_synthetic' / self.builder_config.name
 
     return {
-        'train':
-            self._generate_examples(split_name='train', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
-        'test':
-            self._generate_examples(split_name='test', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
-        'validation':
-            self._generate_examples(split_name='val', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        'train': self._generate_examples(
+            split_name='train', scene_dir=scene_dir
+        ),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        'test': self._generate_examples(split_name='test', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        'validation': self._generate_examples(
+            split_name='val', scene_dir=scene_dir
+        ),  # pytype: disable=wrong-arg-types  # gen-stub-imports
     }
 
   def _generate_examples(self, scene_dir: epath.Path, split_name: str):

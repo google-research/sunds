@@ -27,12 +27,14 @@ class PinholeCameraTest(tf.test.TestCase):
         image_width=640,
         image_height=480,
         horizontal_fov_in_degrees=57.5,
-        vertical_fov_in_degrees=45.0)
+        vertical_fov_in_degrees=45.0,
+    )
     self.assertEqual(camera_model.image_width, 640)
     self.assertEqual(camera_model.image_height, 480)
     self.assertAllClose(
         camera_model.K,
-        [[583.28296, 0., 320.], [0., 579.41125, 240.], [0., 0., 1.]])
+        [[583.28296, 0.0, 320.0], [0.0, 579.41125, 240.0], [0.0, 0.0, 1.0]],
+    )
 
   def test_construct_from_intrinsics(self):
     """Construct camera using intrinsics params and verify camera attributes."""
@@ -40,22 +42,26 @@ class PinholeCameraTest(tf.test.TestCase):
         image_size_in_pixels=(640, 480),
         focal_length_in_pixels=(500.0, 400.0),
         principal_point_in_pixels=(320.1, 239.9),
-        skew=0.1)
+        skew=0.1,
+    )
     self.assertEqual(camera_model.image_width, 640)
     self.assertEqual(camera_model.image_height, 480)
-    self.assertAllClose(camera_model.K,
-                        [[500.0, 0.1, 320.1], [0., 400.0, 239.9], [0., 0., 1.]])
+    self.assertAllClose(
+        camera_model.K,
+        [[500.0, 0.1, 320.1], [0.0, 400.0, 239.9], [0.0, 0.0, 1.0]],
+    )
 
   def test_project_principal_point_single(self):
     """3D points on +Z axis should project to principal point of the camera."""
     image_width, image_height = 640, 480
     fx, fy, cx, cy = 500.0, 500.0, image_width / 2, image_height / 2
     camera_model = cameras.PinholeCamera(
-        K=np.array([[fx, 0., cx], [0., fy, cy], [0., 0., 1.]]),
+        K=np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]]),
         image_width=image_width,
-        image_height=image_height)
+        image_height=image_height,
+    )
 
-    points_camera = np.array([0., 0., 1.])
+    points_camera = np.array([0.0, 0.0, 1.0])
     points_image = camera_model.project(points_camera)
     self.assertEqual(points_image.shape, (2,))
     self.assertAllClose(points_image, [cx, cy])
@@ -65,11 +71,12 @@ class PinholeCameraTest(tf.test.TestCase):
     image_width, image_height = 640, 480
     fx, fy, cx, cy = 500.0, 500.0, image_width / 2, image_height / 2
     camera_model = cameras.PinholeCamera(
-        K=tf.constant([[fx, 0., cx], [0., fy, cy], [0., 0., 1.]]),
+        K=tf.constant([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]]),
         image_width=image_width,
-        image_height=image_height)
+        image_height=image_height,
+    )
 
-    points_camera = np.tile(np.array([0., 0., 1.]), (10, 5, 1))
+    points_camera = np.tile(np.array([0.0, 0.0, 1.0]), (10, 5, 1))
     points_image = camera_model.project(points_camera)
     self.assertEqual(points_image.shape, (10, 5, 2))
     self.assertAllClose(points_image, np.tile([cx, cy], (10, 5, 1)))
@@ -78,9 +85,12 @@ class PinholeCameraTest(tf.test.TestCase):
     """Tests projection of random set of 3D points."""
     num_points = 10
     points_camera = np.random.rand(num_points, 3)
-    intrinsics = np.array([[500, 0., 320.], [0., 500., 120.], [0., 0., 1.]])
+    intrinsics = np.array(
+        [[500, 0.0, 320.0], [0.0, 500.0, 120.0], [0.0, 0.0, 1.0]]
+    )
     camera_model = cameras.PinholeCamera(
-        K=intrinsics, image_width=640, image_height=240)
+        K=intrinsics, image_width=640, image_height=240
+    )
     points_image = camera_model.project(points_camera)
     self.assertEqual(points_image.shape, (num_points, 2))
     for point_camera, point_image in zip(points_camera, points_image):
@@ -93,20 +103,21 @@ class PinholeCameraTest(tf.test.TestCase):
     image_width, image_height = 640, 480
     fx, fy, cx, cy = 500.0, 500.0, image_width / 2, image_height / 2
     camera_model = cameras.PinholeCamera(
-        K=np.array([[fx, 0., cx], [0., fy, cy], [0., 0., 1.]]),
+        K=np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]]),
         image_width=image_width,
-        image_height=image_height)
+        image_height=image_height,
+    )
 
     points_image = np.array([cx, cy])
     points_camera = camera_model.unproject(points_image)
-    self.assertAllClose(points_camera, [0., 0., 1.])
+    self.assertAllClose(points_camera, [0.0, 0.0, 1.0])
 
   def test_unproject_principal_point_batched(self):
     """Principal point should unproject to camera space points along +Z."""
     image_width, image_height = 640, 480
     fx, fy, cx, cy = 500.0, 500.0, image_width / 2, image_height / 2
     camera_model = cameras.PinholeCamera(
-        K=np.array([[fx, 0., cx], [0., fy, cy], [0., 0., 1.]]),
+        K=np.array([[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]]),
         image_width=image_width,
         image_height=image_height,
     )
@@ -114,19 +125,26 @@ class PinholeCameraTest(tf.test.TestCase):
     points_image = np.tile(np.array([cx, cy]), (6, 5, 4, 1))
     points_camera = camera_model.unproject(points_image)
     self.assertEqual(points_camera.shape, (6, 5, 4, 3))
-    self.assertAllClose(points_camera,
-                        np.tile(np.array([0., 0., 1.]), (6, 5, 4, 1)))
+    self.assertAllClose(
+        points_camera, np.tile(np.array([0.0, 0.0, 1.0]), (6, 5, 4, 1))
+    )
 
   def test_unproject_points_to_ray_directions(self):
     """Unproject a grid of 2D image points as rays and verify ray properties."""
     num_points = 10
     image_width, image_height = 640, 480
     points_image = np.column_stack(
-        (np.random.uniform(0.0, image_width, num_points),
-         np.random.uniform(0.0, image_height, num_points)))
-    intrinsics = np.array([[500, 0., 320.], [0., 500., 120.], [0., 0., 1.]])
+        (
+            np.random.uniform(0.0, image_width, num_points),
+            np.random.uniform(0.0, image_height, num_points),
+        )
+    )
+    intrinsics = np.array(
+        [[500, 0.0, 320.0], [0.0, 500.0, 120.0], [0.0, 0.0, 1.0]]
+    )
     camera_model = cameras.PinholeCamera(
-        K=intrinsics, image_width=image_width, image_height=image_height)
+        K=intrinsics, image_width=image_width, image_height=image_height
+    )
     points_camera = camera_model.unproject(points_image, to_rays=True)
     self.assertEqual(points_camera.shape, (num_points, 3))
 
@@ -140,15 +158,22 @@ class PinholeCameraTest(tf.test.TestCase):
       self.assertAllClose(point_image, expected)
 
   def test_unproject_points_to_unit_zplane(self):
-    """Unproject a grid of 2D image points to z=1 plane and verify correctness."""
+    """Unproject a grid of 2D image points to z=1 plane and verify correctness.
+    """
     num_points = 10
     image_width, image_height = 640, 480
     points_image = np.column_stack(
-        (np.random.uniform(0.0, image_width, num_points),
-         np.random.uniform(0.0, image_height, num_points)))
-    intrinsics = np.array([[500, 0., 320.], [0., 500., 120.], [0., 0., 1.]])
+        (
+            np.random.uniform(0.0, image_width, num_points),
+            np.random.uniform(0.0, image_height, num_points),
+        )
+    )
+    intrinsics = np.array(
+        [[500, 0.0, 320.0], [0.0, 500.0, 120.0], [0.0, 0.0, 1.0]]
+    )
     camera_model = cameras.PinholeCamera(
-        K=intrinsics, image_width=image_width, image_height=image_height)
+        K=intrinsics, image_width=image_width, image_height=image_height
+    )
     points_camera = camera_model.unproject(points_image, to_rays=False)
     self.assertEqual(points_camera.shape, (num_points, 3))
 
@@ -162,10 +187,12 @@ class PinholeCameraTest(tf.test.TestCase):
       self.assertAllClose(point_image, expected)
 
   def test_unproject_and_project(self):
-    """Unproject image points to 3D and then project back to verify they are same."""
+    """Unproject image points to 3D and then project back to verify they are same.
+    """
     # Create an pinhole camera.
     camera_model = cameras.PinholeCamera.from_intrinsics(
-        image_size_in_pixels=(320, 240), focal_length_in_pixels=(400.0, 400.0))
+        image_size_in_pixels=(320, 240), focal_length_in_pixels=(400.0, 400.0)
+    )
 
     # Calling unproject without argument unprojects all pixel centers.
     ray_directions = camera_model.unproject()
@@ -175,18 +202,21 @@ class PinholeCameraTest(tf.test.TestCase):
     self.assertAllClose(projections, camera_model.pixel_centers(), atol=1e-3)
 
   def test_pixel_centers(self):
-    """Verifies the correctness of `pixel_centers` with an alternate implementation."""
+    """Verifies the correctness of `pixel_centers` with an alternate implementation.
+    """
     # Create an pinhole camera.
     image_width, image_height = 320, 240
     camera_model = cameras.PinholeCamera.from_intrinsics(
         image_size_in_pixels=(image_width, image_height),
-        focal_length_in_pixels=(400.0, 400.0))
+        focal_length_in_pixels=(400.0, 400.0),
+    )
 
     # Create an array (H, W, 2) containing pixel center coordinates.
     pixel_centers = tf.meshgrid(
         tf.linspace(0.5, image_width - 0.5, image_width),
         tf.linspace(0.5, image_height - 0.5, image_height),
-        indexing='xy')
+        indexing='xy',
+    )
     pixel_centers = tf.stack(pixel_centers, axis=-1)
 
     # Make sure the pixel centers are correct.

@@ -34,17 +34,23 @@ class IsometryTest(parameterized.TestCase):
     np.testing.assert_equal(pose.R, np.eye(3))
     np.testing.assert_equal(pose.t, np.zeros(3))
 
-    expected = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.]])
+    expected = np.array(
+        [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]]
+    )
     np.testing.assert_equal(pose.matrix3x4(), expected)
     np.testing.assert_array_almost_equal(pose.inverse().matrix3x4(), expected)
 
   def test_pose_init_only_translation(self):
-    pose = Isometry(t=np.array([1., 0., 0.]))
+    pose = Isometry(t=np.array([1.0, 0.0, 0.0]))
 
-    mat = np.array([[1., 0., 0., 1.], [0., 1., 0., 0.], [0., 0., 1., 0.]])
+    mat = np.array(
+        [[1.0, 0.0, 0.0, 1.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]]
+    )
     np.testing.assert_equal(pose.matrix3x4(), mat)
 
-    mat_inv = np.array([[1., 0., 0., -1.], [0., 1., 0., 0.], [0., 0., 1., 0.]])
+    mat_inv = np.array(
+        [[1.0, 0.0, 0.0, -1.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]]
+    )
     np.testing.assert_array_almost_equal(pose.inverse().matrix3x4(), mat_inv)
 
   def test_pose_from_matrix(self):
@@ -63,14 +69,14 @@ class IsometryTest(parameterized.TestCase):
       _ = Isometry.from_matrix(matrix)
 
   def test_pose_times_pose(self):
-    pose = Isometry(np.eye(3), np.array([1., 0., 0.]))
+    pose = Isometry(np.eye(3), np.array([1.0, 0.0, 0.0]))
     pose_product = pose * pose.inverse()
     self.assertIsInstance(pose_product, Isometry)
     np.testing.assert_equal(pose_product.matrix3x4(), Isometry().matrix3x4())
 
   def test_pose_times_vector(self):
     rotation = _rotation_around_x(np.pi / 2)
-    translation = np.array([1., 0., 0.])
+    translation = np.array([1.0, 0.0, 0.0])
     pose = Isometry(rotation, translation)
     for _ in range(10):
       point = np.random.rand(3)
@@ -80,13 +86,14 @@ class IsometryTest(parameterized.TestCase):
 
   def test_pose_times_matrix(self):
     rotation = _rotation_around_x(np.pi / 2)
-    translation = np.array([1., 0., 0.])
+    translation = np.array([1.0, 0.0, 0.0])
     earth_to_mars = Isometry(rotation, translation)
     points_earth = np.random.rand(10, 3)
     points_mars = earth_to_mars * points_earth
     for point_earth, point_mars in zip(points_earth, points_mars):
-      np.testing.assert_equal(point_mars,
-                              rotation.dot(point_earth) + translation)
+      np.testing.assert_equal(
+          point_mars, rotation.dot(point_earth) + translation
+      )
 
   @parameterized.named_parameters(
       ('=invalid_tensor_ndim', np.random.rand(1, 1, 1)),

@@ -24,7 +24,8 @@ def test_scene_boundaries(lego_builder: sunds.core.DatasetBuilder):
   ds = lego_builder.scene_builder.as_dataset(split='train')
   scene_boundaries_values = list(tfds.as_numpy(ds))
   scene_boundaries = boundaries_utils.MultiSceneBoundaries(
-      scene_boundaries_values)
+      scene_boundaries_values
+  )
   min_corner, max_corner = scene_boundaries.get_corners('lego')
   # Values from `datasets/nerf_synthetic/scene_builders.py`
   np.testing.assert_allclose(

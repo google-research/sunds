@@ -32,7 +32,9 @@ class IsometryTest(tf.test.TestCase):
   def test_identity_transform_as_matrix3x4(self):
     """Verifies the `matrix3x4` method for identity transform."""
     tfm = tf_geometry.Isometry(R=tf.eye(3), t=tf.zeros(3))
-    expected = np.array([[1., 0., 0., 0.], [0., 1., 0., 0.], [0., 0., 1., 0.]])
+    expected = np.array(
+        [[1.0, 0.0, 0.0, 0.0], [0.0, 1.0, 0.0, 0.0], [0.0, 0.0, 1.0, 0.0]]
+    )
     self.assertAllClose(tfm.matrix3x4(), expected)
 
   def test_identity_transform_as_matrix4x4(self):
@@ -53,7 +55,7 @@ class IsometryTest(tf.test.TestCase):
 
   def test_transform_composition(self):
     """Tests that composition of transform with its inverse is identity."""
-    tfm = tf_geometry.Isometry(R=tf.eye(3), t=tf.constant([1., 0., 0.]))
+    tfm = tf_geometry.Isometry(R=tf.eye(3), t=tf.constant([1.0, 0.0, 0.0]))
     tfm_product = tfm * tfm.inverse()
     self.assertIsInstance(tfm_product, tf_geometry.Isometry)
     self.assertAllClose(tfm_product.R, tf.eye(3))
@@ -62,7 +64,7 @@ class IsometryTest(tf.test.TestCase):
   def test_point_transform(self):
     """Verifies correctness of transforming a single 3D points."""
     rotation = _rotation_around_x(np.pi / 2)
-    translation = np.array([1., 0., 0.])
+    translation = np.array([1.0, 0.0, 0.0])
     tfm = tf_geometry.Isometry(rotation, translation)
     for _ in range(10):
       point = np.random.rand(3)
@@ -73,7 +75,7 @@ class IsometryTest(tf.test.TestCase):
   def test_pointcloud_transform(self):
     """Verifies correctness of transforming a single 3D point cloud."""
     rotation = _rotation_around_x(np.pi / 2)
-    translation = np.array([1., 0., 0.])
+    translation = np.array([1.0, 0.0, 0.0])
     earth_to_mars = tf_geometry.Isometry(rotation, translation)
     points_earth = np.random.rand(10, 3)
     points_mars = earth_to_mars * points_earth
@@ -83,7 +85,7 @@ class IsometryTest(tf.test.TestCase):
   def test_batched_pointcloud_transform(self):
     """Verifies correctness of transforming a multiple 3D point clouds."""
     rotation = _rotation_around_x(np.pi / 2)
-    translation = np.array([1., 0., 0.])
+    translation = np.array([1.0, 0.0, 0.0])
     earth_to_mars = tf_geometry.Isometry(rotation, translation)
     clouds_earth = np.random.rand(2, 10, 3)
     clouds_mars = earth_to_mars * tf.convert_to_tensor(clouds_earth)

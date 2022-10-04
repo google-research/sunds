@@ -31,11 +31,13 @@ class ImageFeaturesTest(tfds.testing.FeatureExpectationsTestCase):
   def testNormalImage(self):
     img = np.random.rand(24, 24, 3).astype(np.float32)
     img_discrete = ((img + 1.0) * 32767.5).astype(np.uint16)
-    img2 = np.array([
-        [[1., 0., 0.]],
-        [[1e-6, 0.4, -1.]],
-        [[0.9999999999999999999999999999, 0.4, -1.]],
-    ])
+    img2 = np.array(
+        [
+            [[1.0, 0.0, 0.0]],
+            [[1e-6, 0.4, -1.0]],
+            [[0.9999999999999999999999999999, 0.4, -1.0]],
+        ]
+    )
     atol = 1e-04
 
     self.assertFeatureEagerOnly(

@@ -24,14 +24,15 @@ _tf_const = functools.partial(tf.constant, dtype=tf.float32)
 
 
 def test_interp_scalar():
-
-  vals = _tf_const([
-      [-1, -1],
-      [-1, 0],
-      [-1, 1],
-      [0.5, 1],
-      [1, 1],
-  ])
+  vals = _tf_const(
+      [
+          [-1, -1],
+          [-1, 0],
+          [-1, 1],
+          [0.5, 1],
+          [1, 1],
+      ]
+  )
   tf.debugging.assert_near(
       utils.interp(vals, from_=(-1, 1), to=(0, 256)),
       [
@@ -53,11 +54,13 @@ def test_interp_scalar():
       ],
   )
 
-  vals = _tf_const([
-      [255, 255, 0],
-      [255, 128, 0],
-      [255, 0, 128],
-  ])
+  vals = _tf_const(
+      [
+          [255, 255, 0],
+          [255, 128, 0],
+          [255, 0, 128],
+      ]
+  )
   tf.debugging.assert_near(
       utils.interp(vals, from_=(0, 255), to=(0, 1)),
       [
@@ -77,14 +80,15 @@ def test_interp_scalar():
 
 
 def test_interp_coords():
-
-  coords = _tf_const([
-      [-1, -1],
-      [-1, 0],
-      [-1, 1],
-      [0.5, 1],
-      [1, 1],
-  ])
+  coords = _tf_const(
+      [
+          [-1, -1],
+          [-1, 0],
+          [-1, 1],
+          [0.5, 1],
+          [1, 1],
+      ]
+  )
   tf.debugging.assert_near(
       utils.interp(coords, (-1, 1), (0, (1024, 256))),
       [
@@ -96,10 +100,12 @@ def test_interp_coords():
       ],
   )
 
-  coords = _tf_const([
-      [[0, 0], [0, 1024]],
-      [[256, 256], [0, 768]],
-  ])
+  coords = _tf_const(
+      [
+          [[0, 0], [0, 1024]],
+          [[256, 256], [0, 768]],
+      ]
+  )
   tf.debugging.assert_near(
       utils.interp(coords, (0, (256, 1024)), (0, 1)),
       [

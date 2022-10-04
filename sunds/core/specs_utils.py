@@ -41,16 +41,19 @@ Image = Any  # str, np.array, file-object, pathlib object,...
 @dataclasses.dataclass
 class Scene(specs_base.SpecBase):
   """Top-level scene."""
+
   scene_name: str
   scene_box: Dict[str, Any]
   nominal_time: datetime.datetime = dataclasses.field(
-      default_factory=lambda: datetime.datetime.utcfromtimestamp(0))
+      default_factory=lambda: datetime.datetime.utcfromtimestamp(0)
+  )
   frames: List['Frame'] = dataclasses.field(default_factory=list)
 
 
 @dataclasses.dataclass
 class Frame(specs_base.SpecBase):
   """Top-level frame."""
+
   scene_name: str
   frame_name: str
   pose: Optional['Pose']
@@ -62,6 +65,7 @@ class Frame(specs_base.SpecBase):
 @dataclasses.dataclass
 class Pose(specs_base.SpecBase):
   """Pose."""
+
   R: Array  # pylint: disable=invalid-name
   t: Array
 
@@ -82,7 +86,8 @@ class Pose(specs_base.SpecBase):
     # left to right, +y from top to bottom, +z looking forward.
     bcam_from_frame = np_geometry.Isometry(
         R=np.array([[1.0, 0.0, 0.0], [0, -1.0, 0.0], [0, 0, -1.0]]),
-        t=np.zeros(3))
+        t=np.zeros(3),
+    )
     scene_from_frame = scene_from_bcam.compose(bcam_from_frame)
     return cls(
         R=scene_from_frame.R.astype(np.float32),
@@ -101,6 +106,7 @@ class Pose(specs_base.SpecBase):
 @dataclasses.dataclass
 class Camera(specs_base.SpecBase):
   """Camera."""
+
   intrinsics: Optional['CameraIntrinsics'] = None
   extrinsics: Pose = dataclasses.field(default_factory=Pose.identity)
   color_image: Optional[Image] = None
@@ -114,6 +120,7 @@ class Camera(specs_base.SpecBase):
 @dataclasses.dataclass
 class CameraIntrinsics(specs_base.SpecBase):
   """CameraIntrinsics."""
+
   image_width: int
   image_height: int
   K: Array  # pylint: disable=invalid-name
@@ -131,14 +138,15 @@ class CameraIntrinsics(specs_base.SpecBase):
     """Returns camera instrinsics data."""
     if type != 'PERSPECTIVE':
       raise ValueError(
-          f"Unknown camera type: {type!r}. Only 'PERSPECTIVE' supported")
+          f"Unknown camera type: {type!r}. Only 'PERSPECTIVE' supported"
+      )
 
     # Not sure if the height, width order is correct (shouldn't shape be (h, w)
     # instead ?
     camera_angle_x, camera_angle_y = fov_in_degree
     image_width, image_height = img_shape
-    fx = .5 * image_width / np.tan(.5 * camera_angle_x)
-    fy = .5 * image_height / np.tan(.5 * camera_angle_y)
+    fx = 0.5 * image_width / np.tan(0.5 * camera_angle_x)
+    fy = 0.5 * image_height / np.tan(0.5 * camera_angle_y)
     return cls(
         image_width=image_width,
         image_height=image_height,

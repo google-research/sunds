@@ -42,6 +42,7 @@ class YieldMode(epy.StrEnum):
     DICT: The example contain the dict of all cameras (
       `'cameras': {'camera0': {'ray_origins': ...}, 'camera1': ...}`).
   """
+
   RAY = enum.auto()
   IMAGE = enum.auto()
   STACKED = enum.auto()
@@ -84,6 +85,7 @@ class CenterNormalizeParams:
     far_plane: far plane to use when calculating frustrums.
     jitter: Translational jitter to apply after centering
   """
+
   far_plane: float
   jitter: float = 3.0
 
@@ -134,13 +136,16 @@ class Nerf(core.FrameTask):
     add_name: If `True`, add the `scene_name`, `frame_name`, `camera_name`
       to the example `dict`.
   """
+
   yield_mode: Union[str, YieldMode] = YieldMode.IMAGE
   normalize_rays: Union[bool, CenterNormalizeParams] = False
   remove_invalid_rays: bool = True
   additional_camera_specs: FeatureSpecsHint = dataclasses.field(
-      default_factory=dict)
+      default_factory=dict
+  )
   additional_frame_specs: FeatureSpecsHint = dataclasses.field(
-      default_factory=dict)
+      default_factory=dict
+  )
   add_name: bool = False
 
   def __post_init__(self):
@@ -162,7 +167,8 @@ class Nerf(core.FrameTask):
     # Forward the split name to the pipeline function
     assert kwargs.get('batch_size') is None, 'Batch size incompatible with Nerf'
     return super().as_dataset(
-        pipeline_kwargs=dict(split=kwargs['split']), **kwargs)
+        pipeline_kwargs=dict(split=kwargs['split']), **kwargs
+    )
 
   @property
   def frame_specs(self) -> Optional[FeatureSpecsHint]:
@@ -171,7 +177,8 @@ class Nerf(core.FrameTask):
       raise ValueError(
           '`additional_frame_specs` should not contain cameras specs. '
           'Please use `additional_camera_specs` instead. Got: '
-          f'{self.additional_frame_specs}')
+          f'{self.additional_frame_specs}'
+      )
 
     curr_specs = {
         # Extract the scene name for scene boundaries
@@ -182,8 +189,10 @@ class Nerf(core.FrameTask):
             camera_name: _camera_specs(
                 camera_spec,
                 additional_camera_specs=self.additional_camera_specs,
-            ) for camera_name, camera_spec in
-            self.full_frame_specs['cameras'].items()
+            )
+            for camera_name, camera_spec in self.full_frame_specs[
+                'cameras'
+            ].items()
         },
     }
     if self.add_name:
@@ -219,7 +228,8 @@ class Nerf(core.FrameTask):
 
     if not self.add_name:  # pop frame/scene names
       ds = ds.map(
-          _pop_name_keys(additional_frame_specs=self.additional_frame_specs))  # pylint: disable=no-value-for-parameter
+          _pop_name_keys(additional_frame_specs=self.additional_frame_specs)  # pylint: disable=no-value-for-parameter
+      )
 
     # Eventually flatten the camera, images
     if self.yield_mode in {YieldMode.RAY, YieldMode.IMAGE}:
@@ -232,13 +242,15 @@ class Nerf(core.FrameTask):
       if self.additional_frame_specs:
         raise NotImplementedError(
             'Additional frame specs not compatible with YieldMode.RAY. '
-            'Please open a GitHub issue if needed.')
+            'Please open a GitHub issue if needed.'
+        )
       # Copy static fields (scene_name, frame_name, ...) to each ray.
       ds = ds.map(
           _clone_static_fields(  # pylint: disable=no-value-for-parameter
               add_name=self.add_name,
               additional_frame_specs=self.additional_frame_specs,
-          ))
+          )
+      )
 
       # Remove (H, W, ...) part of shape.
       ds = ds.unbatch().unbatch()
@@ -298,12 +310,15 @@ def _add_rays_single_cam(
     # Pinhole camera model below does not know how to handle lens distortion.
     # Ensure that no distortion exists here.
     radial_distortion = camera_data['intrinsics']['distortion']['radial']
-    tf.debugging.assert_near(radial_distortion,
-                             tf.zeros_like(radial_distortion))
-    tangential_distortion = (
-        camera_data['intrinsics']['distortion']['tangential'])
-    tf.debugging.assert_near(tangential_distortion,
-                             tf.zeros_like(tangential_distortion))
+    tf.debugging.assert_near(
+        radial_distortion, tf.zeros_like(radial_distortion)
+    )
+    tangential_distortion = camera_data['intrinsics']['distortion'][
+        'tangential'
+    ]
+    tf.debugging.assert_near(
+        tangential_distortion, tf.zeros_like(tangential_distortion)
+    )
 
     h, w, _ = camera_data['color_image'].shape  # pytype: disable=attribute-error  # allow-recursive-types
 
@@ -318,7 +333,8 @@ def _add_rays_single_cam(
             K=camera_intrinsics['K'],
             # Use static shape if available
             image_width=w or camera_intrinsics['image_width'],
-            image_height=h or camera_intrinsics['image_height']),
+            image_height=h or camera_intrinsics['image_height'],
+        ),
         world_from_camera=scene_from_camera,
     )
 
@@ -382,7 +398,7 @@ def _normalize_rays(
   origins = utils.interp(
       origins,
       from_=(min_corner, max_corner),
-      to=(-1., 1.),
+      to=(-1.0, 1.0),
       axis=-1,
   )
   # We also need to rescale the camera direction by size.
@@ -395,14 +411,16 @@ def _normalize_rays(
 
   # Normalize the rays. WARNING: direction == 0 for invalid rays.
   directions = tf.math.divide_no_nan(
-      directions, tf.norm(directions, axis=-1, keepdims=True))
+      directions, tf.norm(directions, axis=-1, keepdims=True)
+  )
 
   # TODO(epot): If present, should also scale depth accordingly, so
   # `depth * direction` still works
   if 'depth_image' in camera_ex:
     raise NotImplementedError(
         'Depth not normalized for now. Please open a Github issue if you '
-        'need this feature.')
+        'need this feature.'
+    )
 
   camera_ex['ray_origins'] = origins
   camera_ex['ray_directions'] = directions
@@ -423,10 +441,12 @@ def _get_scene_boundaries(
   ds = scene_builder.as_dataset(
       split=split,
       # Only decode the scene boundaries
-      decoders=tfds.decode.PartialDecoding({
-          'scene_name': tfds.features.Text(),
-          'scene_box': specs.aligned_box_3d_spec(),
-      }),
+      decoders=tfds.decode.PartialDecoding(
+          {
+              'scene_name': tfds.features.Text(),
+              'scene_box': specs.aligned_box_3d_spec(),
+          }
+      ),
       read_config=read_config,
   )
   # Load all scenes boundaries
@@ -606,7 +626,7 @@ def _normalize_additional_specs(spec: FeatureSpecsHint) -> FeatureSpecsHint:
 
 def _has_valid_ray_directions(ex: TensorDict) -> TensorDict:
   directions = ex['ray_directions']
-  return tf.logical_not(tf.reduce_all(directions == 0.))
+  return tf.logical_not(tf.reduce_all(directions == 0.0))
 
 
 @utils.map_fn
@@ -635,7 +655,9 @@ def _center_example(
     directions = tf.reshape(camera['ray_directions'], (-1, 3))
 
     # Filter invalid rays.
-    valid_directions = tf.reduce_any(tf.math.not_equal(directions, 0.), axis=-1)
+    valid_directions = tf.reduce_any(
+        tf.math.not_equal(directions, 0.0), axis=-1
+    )
     origins = tf.boolean_mask(origins, valid_directions)
     directions = tf.boolean_mask(directions, valid_directions)
 

@@ -49,18 +49,17 @@ class Clevr3dFrames(tfds.core.GeneratorBasedBuilder):
     scene_dir = epath.Path(builder_utils.DATA_DIR)
 
     return {
-        'train':
-            self._generate_examples(split_name='train', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
-        'test':
-            self._generate_examples(split_name='test', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
-        'val':
-            self._generate_examples(split_name='val', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
-        'test7':
-            self._generate_examples(split_name='test7', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        'train': self._generate_examples(
+            split_name='train', scene_dir=scene_dir
+        ),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        'test': self._generate_examples(split_name='test', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        'val': self._generate_examples(split_name='val', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        'test7': self._generate_examples(
+            split_name='test7', scene_dir=scene_dir
+        ),  # pytype: disable=wrong-arg-types  # gen-stub-imports
     }
 
   def _generate_examples(self, scene_dir: epath.Path, split_name: str):
-
     # Load the metadata
     metadata_path = scene_dir / 'metadata.npz'
     metadata_dict = utils.load_metadata(metadata_path)
@@ -71,7 +70,7 @@ class Clevr3dFrames(tfds.core.GeneratorBasedBuilder):
     num_objects = (metadata_dict['shape'][start_idx:end_idx] > 0).sum(1)
 
     max_num_objects = 10 if split_name == 'test7' else builder_utils.MAX_N
-    min_num_objects = 7  if split_name == 'test7' else 3
+    min_num_objects = 7 if split_name == 'test7' else 3
 
     subset = (num_objects <= max_num_objects) & (num_objects >= min_num_objects)
 
@@ -79,9 +78,9 @@ class Clevr3dFrames(tfds.core.GeneratorBasedBuilder):
     all_idxs = np.arange(start_idx, end_idx)[subset].tolist()
 
     beam = tfds.core.lazy_imports.apache_beam
-    return (
-        beam.Create(all_idxs) | 'Generate Example' >>
-        beam.Map(self._generate_single_example))
+    return beam.Create(all_idxs) | 'Generate Example' >> beam.Map(
+        self._generate_single_example
+    )
 
   def _generate_single_example(self, idx: int):
     scene_dir = epath.Path(builder_utils.DATA_DIR)
@@ -89,12 +88,14 @@ class Clevr3dFrames(tfds.core.GeneratorBasedBuilder):
     mask_dir = scene_dir / 'masks'
 
     # Get the conditioning views
-    rgb_names = [rgb_dir / f'img_{idx}_{v}.png'
-                 for v in range(self.TOTAL_NUM_VIEWS)]
+    rgb_names = [
+        rgb_dir / f'img_{idx}_{v}.png' for v in range(self.TOTAL_NUM_VIEWS)
+    ]
 
     # Get the conditioning views
-    mask_names = [mask_dir / f'masks_{idx}_{v}.png'
-                  for v in range(self.TOTAL_NUM_VIEWS)]
+    mask_names = [
+        mask_dir / f'masks_{idx}_{v}.png' for v in range(self.TOTAL_NUM_VIEWS)
+    ]
     masks = utils.load_masks(mask_names)
 
     metadata_path = scene_dir / 'metadata.npz'
@@ -103,14 +104,15 @@ class Clevr3dFrames(tfds.core.GeneratorBasedBuilder):
 
     # Get camera direction rays for the conditioning views
     rays_dir = []
-    all_camera_pos = scene_metadata['camera_pos'][:self.TOTAL_NUM_VIEWS]
+    all_camera_pos = scene_metadata['camera_pos'][: self.TOTAL_NUM_VIEWS]
     for i in range(self.TOTAL_NUM_VIEWS):
       # TODO(klausg): Maybe use sunds auto-computation of rays from camera pos
       curr_rays = utils.get_camera_rays(all_camera_pos[i], noisy=False)
       rays_dir.append(curr_rays)
     rays_dir = np.stack(rays_dir, axis=0)
     all_camera_pos = np.expand_dims(
-        np.expand_dims(all_camera_pos, axis=1), axis=1)
+        np.expand_dims(all_camera_pos, axis=1), axis=1
+    )
     all_camera_pos = np.tile(all_camera_pos, (1, 240, 320, 1))
 
     scene_name = f'{idx:04f}'
@@ -146,4 +148,3 @@ class Clevr3dFrames(tfds.core.GeneratorBasedBuilder):
         instance_image=mask_image,
     )
     return int(idx), frame.asdict()
-

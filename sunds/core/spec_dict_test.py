@@ -24,6 +24,7 @@ import tensorflow_datasets as tfds
 
 class _Param(NamedTuple):
   """`pytest.mark.parametrize` single param."""
+
   value: Any
   default: Any
   expected: Any
@@ -54,54 +55,35 @@ class _Param(NamedTuple):
             value=['cat', 'dog'],  # Label to use
             default=spec_dict.labeled_image(shape=(28, 28, 1)),
             expected={
-                'a':
-                    tfds.features.LabeledImage(
-                        labels=['cat', 'dog'],
-                        shape=(28, 28, 1),
-                    ),
+                'a': tfds.features.LabeledImage(
+                    labels=['cat', 'dog'],
+                    shape=(28, 28, 1),
+                ),
             },
         ),
         _Param(
             value=True,  # Use default, but without explicit labels
             default=spec_dict.labeled_image(shape=(28, 28, 1)),
             expected={
-                'a':
-                    tfds.features.LabeledImage(
-                        labels=None,
-                        shape=(28, 28, 1),
-                    ),
+                'a': tfds.features.LabeledImage(
+                    labels=None,
+                    shape=(28, 28, 1),
+                ),
             },
         ),
         # Test nested case
         _Param(
             value=True,
-            default={
-                'x': tf.int64,
-                'y': tfds.features.Text()
-            },
+            default={'x': tf.int64, 'y': tfds.features.Text()},
             expected={
-                'a': {
-                    'x': tf.int64,
-                    'y': tfds.features.Text()
-                },
+                'a': {'x': tf.int64, 'y': tfds.features.Text()},
             },
         ),
         _Param(
-            value={
-                'x': tf.int32,
-                'y': tfds.features.Text(),
-                'z': tf.string
-            },
-            default={
-                'x': tf.int64,
-                'y': tfds.features.Text()
-            },
+            value={'x': tf.int32, 'y': tfds.features.Text(), 'z': tf.string},
+            default={'x': tf.int64, 'y': tfds.features.Text()},
             expected={
-                'a': {
-                    'x': tf.int32,
-                    'y': tfds.features.Text(),
-                    'z': tf.string
-                },
+                'a': {'x': tf.int32, 'y': tfds.features.Text(), 'z': tf.string},
             },
         ),
     ],
@@ -131,15 +113,9 @@ def test_spec_dict_maybe_set(value, default, expected):
             expected={'x': tf.int64},
         ),
         _Param(
-            value={
-                'x': tfds.features.Text(),
-                'y': tf.float32
-            },
+            value={'x': tfds.features.Text(), 'y': tf.float32},
             default={'x': tfds.features.Image()},
-            expected={
-                'x': tfds.features.Text(),
-                'y': tf.float32
-            },
+            expected={'x': tfds.features.Text(), 'y': tf.float32},
         ),
     ],
 )

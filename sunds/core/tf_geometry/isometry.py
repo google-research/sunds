@@ -93,7 +93,8 @@ class Isometry:
     """
     return Isometry(
         R=tf.transpose(self.R),
-        t=-tf.linalg.matvec(tf.transpose(self.R), self.t))
+        t=-tf.linalg.matvec(tf.transpose(self.R), self.t),
+    )
 
   def compose(self, other: 'Isometry') -> 'Isometry':
     """Returns the composite transform equal to self * other.
@@ -115,7 +116,8 @@ class Isometry:
       Composite transform equal to self * other.
     """
     return Isometry(
-        R=self.R @ other.R, t=tf.linalg.matvec(self.R, other.t) + self.t)
+        R=self.R @ other.R, t=tf.linalg.matvec(self.R, other.t) + self.t
+    )
 
   def transform_points(self, points: TensorLike) -> tf.Tensor:
     """Computes the transformation of a set of points.
@@ -133,8 +135,8 @@ class Isometry:
     return tf.einsum('ij,...j->...i', self.R, points) + self.t
 
   def __mul__(
-      self, other: Union['Isometry',
-                         TensorLike]) -> Union['Isometry', tf.Tensor]:
+      self, other: Union['Isometry', TensorLike]
+  ) -> Union['Isometry', tf.Tensor]:
     """Returns the product of self with other i.e.
 
     out = self * other.

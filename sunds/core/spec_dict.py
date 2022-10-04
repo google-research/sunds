@@ -87,16 +87,18 @@ class SpecDict(dict):
       if not value:  # Dict not updated
         return
       if not default:
-        raise ValueError(f'{key}=True, but no default provided. '
-                         f'{key} should be feature instead.')
+        raise ValueError(
+            f'{key}=True, but no default provided. '
+            f'{key} should be feature instead.'
+        )
       if callable(default):  # Default is a factory
         with tfds.core.utils.try_reraise(f'Error building `{key}`: '):
           default = default(None)
       # Update the dict with the default value
       if not _is_features(default):
         raise TypeError(
-            f'Invalid default for `{key}`: {default}. Expected nested '
-            'features.')
+            f'Invalid default for `{key}`: {default}. Expected nested features.'
+        )
       self[key] = default
     elif callable(default):
       # Value and factory given, forward the value to the factory.
@@ -104,7 +106,8 @@ class SpecDict(dict):
         self[key] = default(value)
     else:
       raise TypeError(
-          f"Invalid key '{key}': {value}\nExpected bool or feature.")
+          f"Invalid key '{key}': {value}\nExpected bool or feature."
+      )
 
   def maybe_update(
       self,
@@ -130,10 +133,12 @@ class SpecDict(dict):
       if default is False:  # pylint: disable=g-bool-id-comparison
         raise ValueError(
             'Update set to True, but no default provided. Should provide '
-            'feature instead.')
+            'feature instead.'
+        )
       if not _is_features(default):
         raise TypeError(
-            f'Invalid default for {default}. Expected nested features.')
+            f'Invalid default for {default}. Expected nested features.'
+        )
       self.update(default)
     else:
       self.update(other)

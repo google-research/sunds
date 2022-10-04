@@ -49,31 +49,42 @@ DATASET_INFO_KWARGS = dict(
 DATA_DIR = 'gs://kubric-unlisted/data/clevr3d/'
 IMG_SHAPE = (240, 320)
 
-CAMERA_NAMES = ['target_camera',
-                'input_camera_0',
-                'input_camera_1',]
+CAMERA_NAMES = [
+    'target_camera',
+    'input_camera_0',
+    'input_camera_1',
+]
 
 NUM_CONDITIONAL_VIEWS = 2
 
 # maximum number of objects to use (filter the rest out)
 MAX_N = 6
 
-SPLIT_IDXs = {'train': (0, 70000),
-              'val': (70000, 70500),
-              'test': (85000, 100000),
-              'test7': (0, 100000)}
+SPLIT_IDXs = {
+    'train': (0, 70000),
+    'val': (70000, 70500),
+    'test': (85000, 100000),
+    'test7': (0, 100000),
+}
 
 
 CAM = sunds.specs_utils.CameraIntrinsics(
-    image_width=320, image_height=240,
-    K=np.array([[1., 0., 160.],  # TODO(klausg): use actual intrinsics
-                [0., 1., 120.],
-                [0., 0., 1.]], dtype=np.float32),
+    image_width=320,
+    image_height=240,
+    K=np.array(
+        [
+            [1.0, 0.0, 160.0],  # TODO(klausg): use actual intrinsics
+            [0.0, 1.0, 120.0],
+            [0.0, 0.0, 1.0],
+        ],
+        dtype=np.float32,
+    ),
     type='PERSPECTIVE',
     distortion={
         'radial': np.zeros(3, dtype=np.float32),
         'tangential': np.zeros(2, dtype=np.float32),
-    })
+    },
+)
 
 
 def frame(
@@ -85,7 +96,6 @@ def frame(
     color_image: Optional[Dict[str, Any]] = None,
     depth_image: Optional[Dict[str, Any]] = None,
     instance_image: Optional[Dict[str, Any]] = None,
-
 ) -> sunds.specs_utils.Frame:
   """Extract the frame information."""
 
@@ -98,7 +108,8 @@ def frame(
         instance_image=instance_image[camera_name] if instance_image else None,
         # TODO(klausg): use actual extrinsics
         ray_origins=ray_origins[camera_name],
-        ray_directions=ray_directions[camera_name])
+        ray_directions=ray_directions[camera_name],
+    )
   return sunds.specs_utils.Frame(
       scene_name=scene_name,
       frame_name=frame_name,
@@ -116,7 +127,8 @@ def get_frame_spec():
       category_image=False,
       instance_image=True,  # Object instance ids.
       camera_rays=True,
-      img_shape=IMG_SHAPE)
+      img_shape=IMG_SHAPE,
+  )
 
   camera_specs = {camera_name: camera_spec for camera_name in CAMERA_NAMES}
   frame_spec = sunds.specs.frame_spec(cameras=camera_specs)

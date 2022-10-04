@@ -26,9 +26,10 @@ def simple_pinhole_camera():
   image_width, image_height = 320, 240
   fx, fy, cx, cy = 400.0, 400.0, image_width / 2, image_height / 2
   return cameras.PinholeCamera(
-      K=[[fx, 0., cx], [0., fy, cy], [0., 0., 1.]],
+      K=[[fx, 0.0, cx], [0.0, fy, cy], [0.0, 0.0, 1.0]],
       image_width=image_width,
-      image_height=image_height)
+      image_height=image_height,
+  )
 
 
 def random_pose():
@@ -47,7 +48,8 @@ def pinhole_camera_with_random_pose():
 
 def pinhole_camera_with_non_square_pixels():
   camera = cameras.PinholeCamera.from_intrinsics(
-      image_size_in_pixels=(1024, 768), focal_length_in_pixels=(500.0, 600.0))
+      image_size_in_pixels=(1024, 768), focal_length_in_pixels=(500.0, 600.0)
+  )
   world_from_camera = isometry.Isometry(R=tf.eye(3), t=tf.ones(3))
   return {
       'testcase_name': 'pinhole_camera_with_non_square_pixels',
@@ -58,34 +60,41 @@ def pinhole_camera_with_non_square_pixels():
 
 class RaysFromImageGridTest(parameterized.TestCase, tf.test.TestCase):
 
-  @parameterized.named_parameters(pinhole_camera_with_random_pose(),
-                                  pinhole_camera_with_non_square_pixels())
+  @parameterized.named_parameters(
+      pinhole_camera_with_random_pose(), pinhole_camera_with_non_square_pixels()
+  )
   def test_rays_shape(self, camera, world_from_camera):
     """Test that the output tensor shapes are correct."""
     ray_origins, ray_directions = rays.rays_from_image_grid(
-        camera=camera, world_from_camera=world_from_camera)
+        camera=camera, world_from_camera=world_from_camera
+    )
     expected_shape = (camera.image_height, camera.image_width, 3)
     self.assertEqual(ray_origins.shape, expected_shape)
     self.assertEqual(ray_directions.shape, expected_shape)
 
-  @parameterized.named_parameters(pinhole_camera_with_random_pose(),
-                                  pinhole_camera_with_non_square_pixels())
+  @parameterized.named_parameters(
+      pinhole_camera_with_random_pose(), pinhole_camera_with_non_square_pixels()
+  )
   def test_rays_are_normalized(self, camera, world_from_camera):
     """Test that each ray direction is an unit vector."""
     _, ray_directions = rays.rays_from_image_grid(
-        camera=camera, world_from_camera=world_from_camera)
+        camera=camera, world_from_camera=world_from_camera
+    )
     self.assertAllClose(
         tf.norm(ray_directions, axis=-1),
         tf.ones(shape=(camera.image_height, camera.image_width)),
-        atol=1e-04)
+        atol=1e-04,
+    )
 
-  @parameterized.named_parameters(pinhole_camera_with_random_pose(),
-                                  pinhole_camera_with_non_square_pixels())
+  @parameterized.named_parameters(
+      pinhole_camera_with_random_pose(), pinhole_camera_with_non_square_pixels()
+  )
   def test_rays_project_back_to_image(self, camera, world_from_camera):
     """Make sure that points on the rays project to pixel centers on image."""
     # Generate rays.
     ray_origins, ray_directions = rays.rays_from_image_grid(
-        camera=camera, world_from_camera=world_from_camera)
+        camera=camera, world_from_camera=world_from_camera
+    )
 
     # Generate ray end points in world frame and project back to camera.
     points_world = ray_origins + 5.0 * ray_directions
@@ -95,10 +104,10 @@ class RaysFromImageGridTest(parameterized.TestCase, tf.test.TestCase):
     # Create an array (H, W, 2) containing pixel center coordinates.
     pixel_centers = np.stack(
         np.meshgrid(
-            range(camera.image_width),
-            range(camera.image_height),
-            indexing='xy'),
-        axis=-1)
+            range(camera.image_width), range(camera.image_height), indexing='xy'
+        ),
+        axis=-1,
+    )
     pixel_centers = pixel_centers.astype(np.float32) + 0.5
 
     self.assertAllClose(points_image, pixel_centers, atol=1e-03)
@@ -114,7 +123,8 @@ class SamplesAlongRaysTest(parameterized.TestCase, tf.test.TestCase):
   def test_depth_samples_scalar_range(self, method):
     """Checks depth samples with a single scalar input depth range."""
     point_depths = rays.depth_samples_along_rays(
-        near_depth=1.0, far_depth=10.0, num_samples_per_ray=20, method=method)
+        near_depth=1.0, far_depth=10.0, num_samples_per_ray=20, method=method
+    )
 
     # Check tensor shape.
     self.assertEqual(point_depths.shape, (20, 1))
@@ -124,7 +134,8 @@ class SamplesAlongRaysTest(parameterized.TestCase, tf.test.TestCase):
 
     # Check that depths are ordered as monotonically increasing order.
     self.assertTrue(
-        tf.reduce_all(tf.experimental.numpy.diff(point_depths, axis=-1) > 0.0))
+        tf.reduce_all(tf.experimental.numpy.diff(point_depths, axis=-1) > 0.0)
+    )
 
   @parameterized.named_parameters(
       ('method=linspace_depth', 'linspace_depth'),
@@ -137,7 +148,8 @@ class SamplesAlongRaysTest(parameterized.TestCase, tf.test.TestCase):
         near_depth=tf.ones(shape=(42, 420)),
         far_depth=10.0 * tf.ones(shape=(42, 420)),
         num_samples_per_ray=20,
-        method=method)
+        method=method,
+    )
 
     # Check tensor shape.
     self.assertEqual(point_depths.shape, (42, 420, 20, 1))
@@ -147,7 +159,8 @@ class SamplesAlongRaysTest(parameterized.TestCase, tf.test.TestCase):
 
     # Check that depths are ordered as monotonically increasing order.
     self.assertTrue(
-        tf.reduce_all(tf.experimental.numpy.diff(point_depths, axis=-1) > 0.0))
+        tf.reduce_all(tf.experimental.numpy.diff(point_depths, axis=-1) > 0.0)
+    )
 
   @parameterized.named_parameters(
       ('method=linspace_depth', 'linspace_depth'),
@@ -170,16 +183,19 @@ class SamplesAlongRaysTest(parameterized.TestCase, tf.test.TestCase):
         near_depth=near_depth,
         far_depth=far_depth,
         num_samples_per_ray=num_samples_per_ray,
-        method=method)
-    point_depths = tf.broadcast_to(point_depths,
-                                   [100000, num_samples_per_ray, 1])
+        method=method,
+    )
+    point_depths = tf.broadcast_to(
+        point_depths, [100000, num_samples_per_ray, 1]
+    )
 
     # Get jittered depth samples.
     jittered_point_depths = rays.jitter_depth_samples_along_rays(point_depths)
 
     # Get histogram of the depth samples and make sure all histogram bins > 0
     hist = tf.histogram_fixed_width(
-        jittered_point_depths, value_range=[near_depth, far_depth], nbins=1000)
+        jittered_point_depths, value_range=[near_depth, far_depth], nbins=1000
+    )
     self.assertAllGreater(hist, 0.0)
 
   @parameterized.named_parameters(
@@ -190,10 +206,12 @@ class SamplesAlongRaysTest(parameterized.TestCase, tf.test.TestCase):
   def test_jittere_depth_samples_monotonicity(self, method):
     """Tests that jittered depth samples are monotonically increasing."""
     point_depths = tf.sort(
-        tf.random.uniform(shape=[100, 1], minval=2.0, maxval=6.0), axis=-2)
+        tf.random.uniform(shape=[100, 1], minval=2.0, maxval=6.0), axis=-2
+    )
     jittered_point_depths = rays.jitter_depth_samples_along_rays(point_depths)
     self.assertAllGreaterEqual(
-        jittered_point_depths[1:, :] - jittered_point_depths[:-1, :], 0.0)
+        jittered_point_depths[1:, :] - jittered_point_depths[:-1, :], 0.0
+    )
 
   @parameterized.parameters(
       {'point_depths_shape': [5, 1]},
@@ -204,7 +222,8 @@ class SamplesAlongRaysTest(parameterized.TestCase, tf.test.TestCase):
     """Tests that jittered depth samples have same shape as input depths."""
     point_depths = tf.sort(
         tf.random.uniform(shape=point_depths_shape, minval=2.0, maxval=6.0),
-        axis=-2)
+        axis=-2,
+    )
     jittered_point_depths = rays.jitter_depth_samples_along_rays(point_depths)
     self.assertEqual(point_depths.shape, jittered_point_depths.shape)
 
@@ -222,21 +241,25 @@ class SamplesAlongRaysTest(parameterized.TestCase, tf.test.TestCase):
         near_depth=near_depth,
         far_depth=far_depth,
         num_samples_per_ray=num_samples_per_ray,
-        method=method)
+        method=method,
+    )
 
     ray_origins = tf.zeros(3)
     ray_directions = tf.random.uniform(
-        shape=(240, 320, 3), minval=-1.0, maxval=1.0)
+        shape=(240, 320, 3), minval=-1.0, maxval=1.0
+    )
     ray_directions, _ = tf.linalg.normalize(ray_directions, axis=-1)
 
     point_positions = rays.point_samples_along_rays(
         ray_origins=ray_origins,
         ray_directions=ray_directions,
-        point_depths=point_depths)
+        point_depths=point_depths,
+    )
     point_depths = tf.linalg.norm(point_positions, axis=-1)
 
     self.assertEqual(point_positions.shape, (240, 320, num_samples_per_ray, 3))
     self.assertAllInRange(
         point_depths,
         lower_bound=near_depth - 1e-2,
-        upper_bound=far_depth + 1e-2)
+        upper_bound=far_depth + 1e-2,
+    )

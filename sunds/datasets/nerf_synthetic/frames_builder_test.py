@@ -20,6 +20,7 @@ import tensorflow_datasets as tfds
 
 class FramesTest(tfds.testing.DatasetBuilderTestCase):
   """Test class."""
+
   DATASET_CLASS = frames_builder.NerfSyntheticFrames
   BUILDER_CONFIG_NAMES_TO_TEST = ['lego']
   SPLITS = {

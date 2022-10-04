@@ -33,9 +33,11 @@ class NerfSyntheticScenes(tfds.core.GeneratorBasedBuilder):
 
   def _info(self) -> tfds.core.DatasetInfo:
     """Dataset metadata."""
-    frames = sunds.specs.frame_spec(cameras={
-        builder_utils.CAMERA_NAME: sunds.specs.camera_spec(),
-    })
+    frames = sunds.specs.frame_spec(
+        cameras={
+            builder_utils.CAMERA_NAME: sunds.specs.camera_spec(),
+        }
+    )
     features = sunds.specs.scene_spec(frames=frames)
 
     return tfds.core.DatasetInfo(
@@ -52,12 +54,13 @@ class NerfSyntheticScenes(tfds.core.GeneratorBasedBuilder):
     scene_dir = scene_dir / 'nerf_synthetic' / self.builder_config.name
 
     return {
-        'train':
-            self._generate_examples(split_name='train', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
-        'test':
-            self._generate_examples(split_name='test', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
-        'validation':
-            self._generate_examples(split_name='val', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        'train': self._generate_examples(
+            split_name='train', scene_dir=scene_dir
+        ),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        'test': self._generate_examples(split_name='test', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        'validation': self._generate_examples(
+            split_name='val', scene_dir=scene_dir
+        ),  # pytype: disable=wrong-arg-types  # gen-stub-imports
     }
 
   def _generate_examples(self, scene_dir: epath.Path, split_name: str):
@@ -90,23 +93,23 @@ class NerfSyntheticScenes(tfds.core.GeneratorBasedBuilder):
 _SCENE_BOXES = {
     'chair': {
         'min_corner': np.array([-0.720808, -0.694973, -0.994077], dtype='f'),
-        'max_corner': np.array([0.658137, 0.705611, 1.050102], dtype='f')
+        'max_corner': np.array([0.658137, 0.705611, 1.050102], dtype='f'),
     },
     'drums': {
         'min_corner': np.array([-1.125537, -0.745907, -0.491643], dtype='f'),
-        'max_corner': np.array([1.121641, 0.962200, 0.938314], dtype='f')
+        'max_corner': np.array([1.121641, 0.962200, 0.938314], dtype='f'),
     },
     'ficus': {
         'min_corner': np.array([-0.377738, -0.857906, -1.033538], dtype='f'),
-        'max_corner': np.array([0.555734, 0.577753, 1.140060], dtype='f')
+        'max_corner': np.array([0.555734, 0.577753, 1.140060], dtype='f'),
     },
     'hotdog': {
         'min_corner': np.array([-1.197979, -1.286035, -0.189875], dtype='f'),
-        'max_corner': np.array([1.197979, 1.109923, 0.311796], dtype='f')
+        'max_corner': np.array([1.197979, 1.109923, 0.311796], dtype='f'),
     },
     'lego': {
         'min_corner': np.array([-0.637787, -1.140016, -0.344656], dtype='f'),
-        'max_corner': np.array([0.633744, 1.148737, 1.002206], dtype='f')
+        'max_corner': np.array([0.633744, 1.148737, 1.002206], dtype='f'),
     },
     'materials': {
         'min_corner': np.array([-1.122671, -0.758984, -0.231944], dtype='f'),

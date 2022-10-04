@@ -41,11 +41,13 @@ def test_nerf(lego_builder: sunds.core.DatasetBuilder, add_name: bool):
       'color_image': tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.uint8),
   }
   if add_name:
-    spec.update({
-        'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
-        'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
-        'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
-    })
+    spec.update(
+        {
+            'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+            'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+            'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
+        }
+    )
   assert ds.element_spec == spec
   list(ds)  # Pipeline can be executed
 
@@ -76,11 +78,13 @@ def test_nerf_tfds_id(lego_builder: sunds.core.DatasetBuilder, add_name: bool):
       'tfds_id': tf.TensorSpec(shape=(), dtype=tf.string),
   }
   if add_name:
-    spec.update({
-        'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
-        'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
-        'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
-    })
+    spec.update(
+        {
+            'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+            'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+            'camera_name': tf.TensorSpec(shape=(), dtype=tf.string),
+        }
+    )
 
   assert ds.element_spec == spec
   list(ds)  # Pipeline can be executed
@@ -108,19 +112,20 @@ def test_nerf_batch_shape(
   assert isinstance(ds, tf.data.Dataset)
   camera_shape = (1,) if yield_mode == 'stacked' else ()
   spec = {
-      'ray_directions':
-          tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.float32),
-      'ray_origins':
-          tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.float32),
-      'color_image':
-          tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.uint8),
+      'ray_directions': tf.TensorSpec(
+          shape=(*batch_shape, 3), dtype=tf.float32
+      ),
+      'ray_origins': tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.float32),
+      'color_image': tf.TensorSpec(shape=(*batch_shape, 3), dtype=tf.uint8),
   }
   if add_name:
-    spec.update({
-        'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
-        'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
-        'camera_name': tf.TensorSpec(shape=camera_shape, dtype=tf.string),
-    })
+    spec.update(
+        {
+            'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+            'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+            'camera_name': tf.TensorSpec(shape=camera_shape, dtype=tf.string),
+        }
+    )
   assert ds.element_spec == spec
   list(ds.take(4))  # Pipeline can be executed
 
@@ -139,20 +144,25 @@ def test_nerf_yield_all_camera(
   spec = {
       'cameras': {
           'default_camera': {  # Default camera
-              'ray_directions':
-                  tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.float32),
-              'ray_origins':
-                  tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.float32),
-              'color_image':
-                  tf.TensorSpec(shape=(*img_shape, 3), dtype=tf.uint8),
+              'ray_directions': tf.TensorSpec(
+                  shape=(*img_shape, 3), dtype=tf.float32
+              ),
+              'ray_origins': tf.TensorSpec(
+                  shape=(*img_shape, 3), dtype=tf.float32
+              ),
+              'color_image': tf.TensorSpec(
+                  shape=(*img_shape, 3), dtype=tf.uint8
+              ),
           },
       },
   }
   if add_name:
-    spec.update({
-        'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
-        'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
-    })
+    spec.update(
+        {
+            'scene_name': tf.TensorSpec(shape=(), dtype=tf.string),
+            'frame_name': tf.TensorSpec(shape=(), dtype=tf.string),
+        }
+    )
   assert ds.element_spec == spec
   list(ds)  # Pipeline can be executed
 
@@ -169,20 +179,22 @@ def test_normalize_rays():
   normalize_rays = sunds.tasks.nerf._normalize_rays
 
   ex = {
-      'ray_origins':
-          tf.constant([
-              [0., -2., -2],
-              [2., 2., 2.],
-              [8., -2., 4.],
-              [8., -2., 4.],
-          ]),
-      'ray_directions':
-          tf.constant([
-              [0., 0., 23.],
-              [1., 1., 0.],
-              [3., 3., 0.],
-              [0., 0., 0.],
-          ]),
+      'ray_origins': tf.constant(
+          [
+              [0.0, -2.0, -2],
+              [2.0, 2.0, 2.0],
+              [8.0, -2.0, 4.0],
+              [8.0, -2.0, 4.0],
+          ]
+      ),
+      'ray_directions': tf.constant(
+          [
+              [0.0, 0.0, 23.0],
+              [1.0, 1.0, 0.0],
+              [3.0, 3.0, 0.0],
+              [0.0, 0.0, 0.0],
+          ]
+      ),
   }
   scene_ex = [
       {
@@ -208,30 +220,33 @@ def test_normalize_rays():
   )
 
   expected_ex = {
-      'ray_origins':
-          tf.constant([
-              [-1., -1., -1.],
-              [-0.5, 1., 0.],
-              [1., -1., 0.5],
-              [1., -1., 0.5],
-          ]),
-      'ray_directions':
-          tf.constant([
-              [0., 0., 1.],
-              [0.4472136, 0.8944272, 0.],
-              [0.4472136, 0.8944272, 0.],
-              [0., 0., 0.],
-          ]),
+      'ray_origins': tf.constant(
+          [
+              [-1.0, -1.0, -1.0],
+              [-0.5, 1.0, 0.0],
+              [1.0, -1.0, 0.5],
+              [1.0, -1.0, 0.5],
+          ]
+      ),
+      'ray_directions': tf.constant(
+          [
+              [0.0, 0.0, 1.0],
+              [0.4472136, 0.8944272, 0.0],
+              [0.4472136, 0.8944272, 0.0],
+              [0.0, 0.0, 0.0],
+          ]
+      ),
   }
 
   tf.nest.map_structure(tf.debugging.assert_near, normalized_ex, expected_ex)
   tf.debugging.assert_near(
       tf.norm(normalized_ex['ray_directions'], axis=-1),
-      [1., 1., 1., 0.],
+      [1.0, 1.0, 1.0, 0.0],
   )
 
   with pytest.raises(
-      tf.errors.InvalidArgumentError, match='Unknown scene name'):
+      tf.errors.InvalidArgumentError, match='Unknown scene name'
+  ):
     normalized_ex = normalize_rays(
         {'scene_name': 'unknown_scene'},
         ex,
@@ -264,14 +279,16 @@ def test_nerf_additional_specs(
 
 @pytest.mark.parametrize('add_name', [False, True], ids=['noname', 'name'])
 @pytest.mark.parametrize(
-    'normalize_rays', [False, True], ids=['nonorm', 'norm'])
+    'normalize_rays', [False, True], ids=['nonorm', 'norm']
+)
 @pytest.mark.parametrize(
     'yield_mode',
     ['ray', 'image', 'stacked', 'dict'],
 )
 @pytest.mark.parametrize('additional_frame_specs', [{}, {'timestamp'}])
 @pytest.mark.parametrize(
-    'remove_invalid_rays', [False, True], ids=['keep', 'remove'])
+    'remove_invalid_rays', [False, True], ids=['keep', 'remove']
+)
 def test_all_flags(
     lego_builder: sunds.core.DatasetBuilder,
     normalize_rays: bool,
@@ -288,7 +305,7 @@ def test_all_flags(
         match='frame specs not compatible',
     )
   else:
-    # TODO(py3.7): Replace by contextlib.nullcontext
+    # TODO(py37): Replace by contextlib.nullcontext
     error_cm = contextlib.suppress()
 
   with error_cm:
@@ -303,7 +320,8 @@ def test_all_flags(
         ),
     )
     if not remove_invalid_rays:
-      assert len(ds)  # `len` is preserved  # pylint: disable=g-explicit-length-test
+      # `len` is preserved
+      assert len(ds)  # pylint: disable=g-explicit-length-test
     list(ds.take(2))  # Pipeline can be executed
 
 
@@ -311,56 +329,75 @@ def test_center_example():
   ex = {
       'cameras': {
           'target': {
-              'ray_origins':
-                  tf.constant(
-                      [
-                          [0, 3, 7],
-                          # The second ray has an invalid direction, so its
-                          # origin should be ignored for the center calculation.
-                          [1000, 1000, 1000],
-                      ],
-                      dtype=tf.float32),
-              'ray_directions':
-                  tf.constant([
+              'ray_origins': tf.constant(
+                  [
+                      [0, 3, 7],
+                      # The second ray has an invalid direction, so its
+                      # origin should be ignored for the center calculation.
+                      [1000, 1000, 1000],
+                  ],
+                  dtype=tf.float32,
+              ),
+              'ray_directions': tf.constant(
+                  [
                       [1, 0, 0],
                       [0, 0, 0],
-                  ], dtype=tf.float32),
+                  ],
+                  dtype=tf.float32,
+              ),
           },
           'input0': {
-              'ray_origins': tf.constant([
-                  [0, 3, 7],
-              ], dtype=tf.float32),
-              'ray_directions': tf.constant([
-                  [0, 1, 0],
-              ], dtype=tf.float32),
+              'ray_origins': tf.constant(
+                  [
+                      [0, 3, 7],
+                  ],
+                  dtype=tf.float32,
+              ),
+              'ray_directions': tf.constant(
+                  [
+                      [0, 1, 0],
+                  ],
+                  dtype=tf.float32,
+              ),
           },
       },
   }
 
   centered_ex = sunds.tasks.nerf._center_example(
-      ex, far_plane_for_centering=10, jitter=0)
+      ex, far_plane_for_centering=10, jitter=0
+  )
 
   expected_ex = {
       'cameras': {
           'target': {
-              'ray_origins':
-                  tf.constant([
+              'ray_origins': tf.constant(
+                  [
                       [-5, -5, 0],
                       [995, 992, 993],
-                  ], dtype=tf.float32),
-              'ray_directions':
-                  tf.constant([
+                  ],
+                  dtype=tf.float32,
+              ),
+              'ray_directions': tf.constant(
+                  [
                       [1, 0, 0],
                       [0, 0, 0],
-                  ], dtype=tf.float32),
+                  ],
+                  dtype=tf.float32,
+              ),
           },
           'input0': {
-              'ray_origins': tf.constant([
-                  [-5, -5, 0],
-              ], dtype=tf.float32),
-              'ray_directions': tf.constant([
-                  [0, 1, 0],
-              ], dtype=tf.float32),
+              'ray_origins': tf.constant(
+                  [
+                      [-5, -5, 0],
+                  ],
+                  dtype=tf.float32,
+              ),
+              'ray_directions': tf.constant(
+                  [
+                      [0, 1, 0],
+                  ],
+                  dtype=tf.float32,
+              ),
           },
       },
   }

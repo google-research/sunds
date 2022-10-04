@@ -19,6 +19,7 @@ import enum
 
 class MetricGroupings(enum.Enum):
   """Semantic metric groupings."""
+
   MOST_IMPORTANT = "most_important"
   IMPORTANT = "important"
   MOVERS = "movers"
