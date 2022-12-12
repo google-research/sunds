@@ -3,7 +3,7 @@ name = "sunds"
 version = "0.4.1"
 description = "Datasets for scene understanding and neural rendering."
 readme = "README.md"
-requires-python = ">=3.7"
+requires-python = ">=3.8"
 license = {file = "LICENSE"}
 authors = [{name = "Sunds team", email="sunds@google.com"}]
 classifiers = [
