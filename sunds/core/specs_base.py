@@ -27,7 +27,7 @@ class SpecBase:
   def asdict(self) -> Dict[str, Any]:
     """Convert the dataclass to dict, recursivelly applied to childs."""
     attrs = {}
-    for field in dataclasses.fields(self):
+    for field in dataclasses.fields(self):  # pytype: disable=wrong-arg-types  # re-none
       value = getattr(self, field.name, None)
       if value is None:  # Filter None elements
         continue
