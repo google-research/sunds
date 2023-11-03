@@ -1,4 +1,4 @@
-# Copyright 2022 The sunds Authors.
+# Copyright 2023 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -32,7 +32,7 @@ class MetricGroupings(enum.Enum):
 
   @classmethod
   def has_value(cls, value):
-    return value in cls._value2member_map_.keys()
+    return value in cls._value2member_map_.keys()  # pytype: disable=attribute-error  # use-enum-overlay
 
   @classmethod
   def lidar_only(cls, value):
