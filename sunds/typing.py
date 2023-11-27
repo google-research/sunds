@@ -48,7 +48,7 @@ ArrayLike = Union[Array, Any]
 # ==== TFDS types ====
 # TODO(epot): Could this be replaced by some tfds.typing.Xyz
 
-Split = Union[str, tfds.Split, tfds.core.ReadInstruction]
+Split = Union[str, tfds.core.Split, tfds.core.ReadInstruction]
 
 _FeatureSpecElem = Union[tfds.features.FeatureConnector, tf.dtypes.DType]
 FeatureSpecs = TreeDict[_FeatureSpecElem]
