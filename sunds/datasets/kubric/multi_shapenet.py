@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -305,7 +305,7 @@ def _is_in_spawn_region(
   scene_lower, scene_upper = np.array(spawn_region)
   obj_lower, obj_upper = obj.aabbox
   result = np.all((scene_lower <= obj_lower) & (scene_upper >= obj_upper))
-  return result
+  return result  # pyrefly: ignore[bad-return]
 
 
 def _place_upright_object(
@@ -322,7 +322,7 @@ def _place_upright_object(
       functools.partial(
           _reset_position_and_orientation,
           position=asset.position,
-          quaternion=list(initial_quaternion),
+          quaternion=list(initial_quaternion),  # pyrefly: ignore[bad-argument-type]
       ),
       functools.partial(_random_rotation, axis="Z"),
       functools.partial(_random_xy_sampler, spawn_region=spawn_region),
@@ -506,7 +506,7 @@ class SceneRenderer(base.BaseRenderer):
         if reference_point is not None:
           distance_v = (
               np.linalg.norm(v - np.array(reference_point)))
-          if min_distance <= distance_v <= max_distance:
+          if min_distance <= distance_v <= max_distance:  # pyrefly: ignore[unsupported-operation]
             return tuple(v)
         else:
           return tuple(v)
@@ -615,7 +615,7 @@ class SceneRenderer(base.BaseRenderer):
   # --- Place random objects
   def add_random_object(self, spawn_region, split: str) -> kb.Object3D:
     """Add a random object at a random location and pose."""
-    obj = self._asset_source.create(asset_id=self._sample_asset_id(split))
+    obj = self._asset_source.create(asset_id=self._sample_asset_id(split))  # pyrefly: ignore[bad-argument-type]
 
     # normalize the scale of the object such that one of the dimensions touches
     # the [-1, 1]^3 cube.
@@ -908,7 +908,7 @@ class SceneRenderer(base.BaseRenderer):
     # --- Ensure objects lie in desired bounding box.
     scene_boundaries = _get_scene_boundaries(
         floor=floor,
-        spawn_region=self._config.spawn_region,
+        spawn_region=self._config.spawn_region,  # pyrefly: ignore[bad-argument-type]
         foreground_objects=list(self._scene.foreground_assets),
     )
 
