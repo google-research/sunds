@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -100,7 +100,7 @@ class FrameTask(Task):
 
   """
 
-  def as_dataset(
+  def as_dataset(  # pyrefly: ignore[bad-override]
       self,
       *,
       split: Tree[Split],

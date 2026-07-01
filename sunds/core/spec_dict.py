@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -139,7 +139,7 @@ class SpecDict(dict):
         raise TypeError(
             f'Invalid default for {default}. Expected nested features.'
         )
-      self.update(default)
+      self.update(default)  # pyrefly: ignore[no-matching-overload]
     else:
       self.update(other)
 

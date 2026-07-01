@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -235,7 +235,7 @@ def camera_rays_spec(
 
 def aligned_box_3d_spec() -> tfds.features.FeaturesDict:
   """Specification of an Axis aligned bounding box 📦."""
-  return {
+  return {  # pyrefly: ignore[bad-return]
       # A box is considered null (empty) if any(min > max).
       # Minimum extent of an axis aligned box.
       'min_corner': tfds.features.Tensor(shape=(3,), dtype=tf.float32),
