@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -200,7 +200,7 @@ class Nerf(core.FrameTask):
     curr_specs.update(self.additional_frame_specs)
     return curr_specs
 
-  def pipeline(self, ds: tf.data.Dataset, *, split: Split) -> tf.data.Dataset:
+  def pipeline(self, ds: tf.data.Dataset, *, split: Split) -> tf.data.Dataset:  # pyrefly: ignore[bad-override]
     """Post processing specs."""
     # Apply the transformations:
     # * Eventually compute the rays (if not included)
@@ -335,7 +335,7 @@ def _add_rays_single_cam(
             image_width=w or camera_intrinsics['image_width'],
             image_height=h or camera_intrinsics['image_height'],
         ),
-        world_from_camera=scene_from_camera,
+        world_from_camera=scene_from_camera,  # pyrefly: ignore[bad-argument-type]
     )
 
     camera_data['ray_origins'] = ray_origins
@@ -397,7 +397,7 @@ def _normalize_rays(
   # Rescale (x, y, z) from [min, max] -> [-1, 1]
   origins = utils.interp(
       origins,
-      from_=(min_corner, max_corner),
+      from_=(min_corner, max_corner),  # pyrefly: ignore[bad-argument-type]
       to=(-1.0, 1.0),
       axis=-1,
   )
@@ -407,7 +407,7 @@ def _normalize_rays(
   # bulldozer). When we scale the scene in a certain way, this direction
   # also needs to be scaled in the same way.
   # Scale each (x, y, z) by (max - min) / 2
-  directions = directions * 2 / (max_corner - min_corner)
+  directions = directions * 2 / (max_corner - min_corner)  # pyrefly: ignore[unsupported-operation]
 
   # Normalize the rays. WARNING: direction == 0 for invalid rays.
   directions = tf.math.divide_no_nan(
@@ -497,7 +497,7 @@ def _flatten_camera_dim_ds(
     add_name: bool,
 ) -> tf.data.Dataset:
   """Yield camera individually."""
-  num_elem = len(ds)
+  num_elem = len(ds)  # pyrefly: ignore[bad-argument-type]
   num_cameras = len(ds.element_spec['cameras'])
   ds = ds.interleave(
       _flatten_camera_dim(add_name=add_name),  # pylint: disable=no-value-for-parameter
@@ -561,7 +561,7 @@ def _ds_merge_dict(
     return slices_ds
   static_ds = tf.data.Dataset.from_tensors(static)
   static_ds = static_ds.repeat()
-  ds = tf.data.Dataset.zip((slices_ds, static_ds))
+  ds = tf.data.Dataset.zip((slices_ds, static_ds))  # pyrefly: ignore[bad-argument-type]
   ds = ds.map(lambda x, y: {**x, **y})
   return ds
 

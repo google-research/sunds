@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -273,7 +273,7 @@ def test_nerf_additional_specs(
     assert 'intrinsics' in ds.element_spec['cameras']['default_camera']
   else:
     assert 'intrinsics' in ds.element_spec
-  assert len(ds)  # pylint: disable=g-explicit-length-test
+  assert len(ds)  # pylint: disable=g-explicit-length-test  # pyrefly: ignore[bad-argument-type]
   list(ds)  # Pipeline can be executed
 
 
@@ -321,7 +321,7 @@ def test_all_flags(
     )
     if not remove_invalid_rays:
       # `len` is preserved
-      assert len(ds)  # pylint: disable=g-explicit-length-test
+      assert len(ds)  # pylint: disable=g-explicit-length-test  # pyrefly: ignore[bad-argument-type]
     list(ds.take(2))  # Pipeline can be executed
 
 

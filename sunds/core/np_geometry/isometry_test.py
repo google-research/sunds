@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -90,7 +90,7 @@ class IsometryTest(parameterized.TestCase):
     earth_to_mars = Isometry(rotation, translation)
     points_earth = np.random.rand(10, 3)
     points_mars = earth_to_mars * points_earth
-    for point_earth, point_mars in zip(points_earth, points_mars):
+    for point_earth, point_mars in zip(points_earth, points_mars):  # pyrefly: ignore[bad-argument-type]
       np.testing.assert_equal(
           point_mars, rotation.dot(point_earth) + translation
       )

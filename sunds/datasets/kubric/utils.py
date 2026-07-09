@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -81,7 +81,7 @@ class KubricConfig(tfds.core.BuilderConfig):
     cfg = copy.copy(self.scene_config)
     cfg.frame_end = self.frames_per_scene
     if isinstance(self.scene_config, multi_shapenet.SceneConfig):
-      return multi_shapenet.SceneRenderer(cfg)
+      return multi_shapenet.SceneRenderer(cfg)  # pyrefly: ignore[bad-argument-type]
     else:
       raise ValueError(f'Unknown ConfigType: {self.scene_config}')
 
@@ -94,8 +94,8 @@ class KubricConfig(tfds.core.BuilderConfig):
 # pylint: disable=unexpected-keyword-arg
 BUILDER_CONFIGS = [
     KubricConfig(
-        name='multi_shapenet',
-        description=textwrap.dedent("""Basic MultiShapenet dataset."""),
+        name='multi_shapenet',  # pyrefly: ignore[unexpected-keyword]
+        description=textwrap.dedent("""Basic MultiShapenet dataset."""),  # pyrefly: ignore[unexpected-keyword]
         scene_config=multi_shapenet.SceneConfig(),
     ),
 ]

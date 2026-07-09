@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -93,7 +93,7 @@ class PinholeCameraTest(tf.test.TestCase):
     )
     points_image = camera_model.project(points_camera)
     self.assertEqual(points_image.shape, (num_points, 2))
-    for point_camera, point_image in zip(points_camera, points_image):
+    for point_camera, point_image in zip(points_camera, points_image):  # pyrefly: ignore[bad-argument-type]
       expected = intrinsics.dot(point_camera)
       expected = expected[:2] / expected[2]
       self.assertAllClose(point_image, expected)
@@ -152,7 +152,7 @@ class PinholeCameraTest(tf.test.TestCase):
     self.assertAllClose(tf.norm(points_camera, axis=-1), tf.ones(num_points))
 
     # Assert thet each ray project backs to the same image coordinate.
-    for point_camera, point_image in zip(points_camera, points_image):
+    for point_camera, point_image in zip(points_camera, points_image):  # pyrefly: ignore[bad-argument-type]
       expected = intrinsics.dot(point_camera)
       expected = expected[:2] / expected[2]
       self.assertAllClose(point_image, expected)
@@ -181,7 +181,7 @@ class PinholeCameraTest(tf.test.TestCase):
     self.assertAllClose(points_camera[:, 2], tf.ones(num_points))
 
     # Assert thet each ray project backs to the same image coordinate.
-    for point_camera, point_image in zip(points_camera, points_image):
+    for point_camera, point_image in zip(points_camera, points_image):  # pyrefly: ignore[bad-argument-type]
       expected = intrinsics.dot(point_camera)
       expected = expected[:2] / expected[2]
       self.assertAllClose(point_image, expected)

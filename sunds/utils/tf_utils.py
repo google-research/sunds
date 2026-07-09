@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -96,8 +96,8 @@ def interp(
   # Normalize to array (to support broadcasting).
   # If inputs are static arguments (not `tf.Tensor`), use numpy arrays for
   # optimization (factors statically computed).
-  from_ = tuple(_to_array(v) for v in from_)
-  to = tuple(_to_array(v) for v in to)
+  from_ = tuple(_to_array(v) for v in from_)  # pyrefly: ignore[bad-assignment]
+  to = tuple(_to_array(v) for v in to)  # pyrefly: ignore[bad-assignment]
 
   # `a` can be scalar or array of shape=(x.shape[-1],), same for `b`
   a, b = _linear_interp_factors(*from_, *to)
@@ -111,8 +111,8 @@ def _linear_interp_factors(
     new_max: _MinMaxValue,
 ) -> Tuple[Union[float, np.ndarray], Union[float, np.ndarray]]:
   """Resolve the `y = a * x + b` equation and returns the factors."""
-  a = (new_min - new_max) / (old_min - old_max)
-  b = (old_min * new_max - new_min * old_max) / (old_min - old_max)
+  a = (new_min - new_max) / (old_min - old_max)  # pyrefly: ignore[unsupported-operation]
+  b = (old_min * new_max - new_min * old_max) / (old_min - old_max)  # pyrefly: ignore[unsupported-operation]
   return a, b
 
 
@@ -146,7 +146,7 @@ def random_choice(
         '`random_choice` only support single dim tensors.'
     )
 
-  shape = (size,) if isinstance(size, int) else tuple(size)
+  shape = (size,) if isinstance(size, int) else tuple(size)  # pyrefly: ignore[bad-argument-type]
   # TODO(py3.8): Replace by `math.prod`
   num_samples = functools.reduce(operator.mul, shape)
   num_values = a.shape[0]  # Numbe of values to sample

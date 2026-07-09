@@ -1,4 +1,4 @@
-# Copyright 2024 The sunds Authors.
+# Copyright 2026 The sunds Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -88,7 +88,7 @@ def frame(
       intrinsics=intrinsics, color_image=color_image
   )
   return sunds.specs_utils.Frame(
-      scene_name=scene_name,
+      scene_name=scene_name,  # pyrefly: ignore[bad-argument-type]
       frame_name=frame_name,
       pose=pose,
       cameras={CAMERA_NAME: camera},
