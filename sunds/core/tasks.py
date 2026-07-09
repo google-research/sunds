@@ -100,7 +100,7 @@ class FrameTask(Task):
 
   """
 
-  def as_dataset(
+  def as_dataset(  # pyrefly: ignore[bad-override]
       self,
       *,
       split: Tree[Split],

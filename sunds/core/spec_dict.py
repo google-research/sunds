@@ -139,7 +139,7 @@ class SpecDict(dict):
         raise TypeError(
             f'Invalid default for {default}. Expected nested features.'
         )
-      self.update(default)
+      self.update(default)  # pyrefly: ignore[no-matching-overload]
     else:
       self.update(other)
 

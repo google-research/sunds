@@ -235,7 +235,7 @@ def camera_rays_spec(
 
 def aligned_box_3d_spec() -> tfds.features.FeaturesDict:
   """Specification of an Axis aligned bounding box 📦."""
-  return {
+  return {  # pyrefly: ignore[bad-return]
       # A box is considered null (empty) if any(min > max).
       # Minimum extent of an axis aligned box.
       'min_corner': tfds.features.Tensor(shape=(3,), dtype=tf.float32),
