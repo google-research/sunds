@@ -102,9 +102,10 @@ def _rays_from_directions(
     ray_directions: Tensor of shape `(..., 3)` containing (normalized) direction
     vectors of each ray.
   """
-  points_world = world_from_camera * ray_directions
-  ray_origins = tf.broadcast_to(world_from_camera.t, tf.shape(points_world))
-  ray_directions, _ = tf.linalg.normalize(points_world - ray_origins, axis=-1)
+  # Rotate directions directly to avoid cancellation when translation is large.
+  ray_directions = tf.einsum('ij,...j->...i', world_from_camera.R, ray_directions)
+  ray_origins = tf.broadcast_to(world_from_camera.t, tf.shape(ray_directions))
+  ray_directions, _ = tf.linalg.normalize(ray_directions, axis=-1)
 
   return ray_origins, ray_directions
 
