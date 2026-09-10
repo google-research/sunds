@@ -113,6 +113,63 @@ class RaysFromImageGridTest(parameterized.TestCase, tf.test.TestCase):
     self.assertAllClose(points_image, pixel_centers, atol=1e-03)
 
 
+class RayTranslationTest(parameterized.TestCase, tf.test.TestCase):
+
+  @parameterized.product(
+      mode=['grid', 'point', 'batch'],
+      translation_scale=[0.0, 1e6, 1e8],
+      compiled=[False, True],
+  )
+  def test_directions_are_translation_independent(
+      self, mode, translation_scale, compiled
+  ):
+    camera = cameras.PinholeCamera(
+        K=[[3.0, 0.0, 1.0], [0.0, 4.0, 1.0], [0.0, 0.0, 1.0]],
+        image_width=2,
+        image_height=2,
+    )
+    rotation = tf.constant([[0.0, -1.0, 0.0], [1.0, 0.0, 0.0], [0.0, 0.0, 1.0]])
+    points = camera.pixel_centers()
+    if mode == 'point':
+      points = points[0, 0]
+
+    def generate(translation):
+      pose = isometry.Isometry(R=rotation, t=translation)
+      if mode == 'grid':
+        return rays.rays_from_image_grid(camera, pose)
+      return rays.rays_from_image_points(camera, pose, points)
+
+    if compiled:
+      generate = tf.function(generate)
+    translation = tf.constant([1.0, -2.0, 3.0]) * translation_scale
+    origins, directions = generate(translation)
+    expected = np.einsum('ij,...j->...i', rotation, camera.unproject(points))
+    expected /= np.linalg.norm(expected, axis=-1, keepdims=True)
+    self.assertAllEqual(origins, np.broadcast_to(translation, expected.shape))
+    self.assertAllClose(directions, expected, atol=1e-6)
+    self.assertAllClose(
+        tf.norm(directions, axis=-1), np.ones(expected.shape[:-1])
+    )
+
+  @parameterized.parameters(False, True)
+  def test_direction_gradients_at_large_translation(self, compiled):
+    camera = simple_pinhole_camera()
+    points = tf.constant([[40.0, 30.0], [180.0, 100.0]])
+
+    def gradient(translation):
+      with tf.GradientTape() as tape:
+        tape.watch(points)
+        pose = isometry.Isometry(R=tf.eye(3), t=translation)
+        _, directions = rays.rays_from_image_points(camera, pose, points)
+        loss = tf.reduce_sum(directions)
+      return tape.gradient(loss, points)
+
+    if compiled:
+      gradient = tf.function(gradient)
+    expected = gradient(tf.zeros(3))
+    self.assertAllClose(gradient(tf.fill([3], 1e8)), expected, atol=1e-6)
+
+
 class SamplesAlongRaysTest(parameterized.TestCase, tf.test.TestCase):
 
   @parameterized.named_parameters(
