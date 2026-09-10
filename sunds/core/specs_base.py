@@ -51,7 +51,7 @@ class SpecBase:
 # * type: Class to serialize to dict
 # * asdict_fn: Function which serialize the object to dict/value
 _REGISTER: Dict[Type[_T], Callable[[_T], Any]] = {  # pyrefly: ignore[bad-assignment, invalid-type-var]
-    SpecBase: lambda x: x.asdict(),  # pyrefly: ignore[missing-attribute]
+    SpecBase: lambda x: x.asdict(),  # pyrefly: ignore[bad-assignment, missing-attribute]
     datetime.datetime: lambda x: x.isoformat(),  # pytype: disable=invalid-annotation
 }
 

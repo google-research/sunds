@@ -416,7 +416,7 @@ class SceneRenderer(base.BaseRenderer):
               functools.partial(
                   _sample_up_to,
                   n=config.max_num_objects_per_category,
-                  random_state=self._obj_rng,
+                  random_state=self._obj_rng,  # pyrefly: ignore[bad-argument-type]
               )
           )
           .reset_index(drop=True)
