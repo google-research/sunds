@@ -56,11 +56,11 @@ class NerfSyntheticScenes(tfds.core.GeneratorBasedBuilder):
     return {
         'train': self._generate_examples(
             split_name='train', scene_dir=scene_dir
-        ),  # pytype: disable=wrong-arg-types  # gen-stub-imports
-        'test': self._generate_examples(split_name='test', scene_dir=scene_dir),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        ),
+        'test': self._generate_examples(split_name='test', scene_dir=scene_dir),
         'validation': self._generate_examples(
             split_name='val', scene_dir=scene_dir
-        ),  # pytype: disable=wrong-arg-types  # gen-stub-imports
+        ),
     }
 
   def _generate_examples(self, scene_dir: epath.Path, split_name: str):

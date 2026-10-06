@@ -320,7 +320,7 @@ def _add_rays_single_cam(
         tangential_distortion, tf.zeros_like(tangential_distortion)
     )
 
-    h, w, _ = camera_data['color_image'].shape  # pytype: disable=attribute-error  # allow-recursive-types
+    h, w, _ = camera_data['color_image'].shape
 
     # Compute camera pose w.r.t scene (camera to scene transform).
     camera_from_frame = tf_geometry.Isometry(**camera_data['extrinsics'])
@@ -407,7 +407,7 @@ def _normalize_rays(
   # bulldozer). When we scale the scene in a certain way, this direction
   # also needs to be scaled in the same way.
   # Scale each (x, y, z) by (max - min) / 2
-  directions = directions * 2 / (max_corner - min_corner)  # pyrefly: ignore[unsupported-operation]
+  directions = directions * 2 / (max_corner - min_corner)
 
   # Normalize the rays. WARNING: direction == 0 for invalid rays.
   directions = tf.math.divide_no_nan(
@@ -497,7 +497,7 @@ def _flatten_camera_dim_ds(
     add_name: bool,
 ) -> tf.data.Dataset:
   """Yield camera individually."""
-  num_elem = len(ds)  # pyrefly: ignore[bad-argument-type]
+  num_elem = len(ds)
   num_cameras = len(ds.element_spec['cameras'])
   ds = ds.interleave(
       _flatten_camera_dim(add_name=add_name),  # pylint: disable=no-value-for-parameter
@@ -561,7 +561,7 @@ def _ds_merge_dict(
     return slices_ds
   static_ds = tf.data.Dataset.from_tensors(static)
   static_ds = static_ds.repeat()
-  ds = tf.data.Dataset.zip((slices_ds, static_ds))  # pyrefly: ignore[bad-argument-type]
+  ds = tf.data.Dataset.zip((slices_ds, static_ds))
   ds = ds.map(lambda x, y: {**x, **y})
   return ds
 
@@ -585,7 +585,7 @@ def _clone_static_fields(
     Modified version of `ex` with `*_name` features cloned once per pixel.
   """
   # Identify batch shape.
-  batch_shape: tf.TensorShape = ex['color_image'].shape[0:-1]  # pytype: disable=attribute-error  # allow-recursive-types
+  batch_shape: tf.TensorShape = ex['color_image'].shape[0:-1]
 
   # TODO(epot): Is there a better way to detect static fields ?
   def _clone(v):

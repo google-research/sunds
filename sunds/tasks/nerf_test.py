@@ -273,7 +273,7 @@ def test_nerf_additional_specs(
     assert 'intrinsics' in ds.element_spec['cameras']['default_camera']
   else:
     assert 'intrinsics' in ds.element_spec
-  assert len(ds)  # pylint: disable=g-explicit-length-test  # pyrefly: ignore[bad-argument-type]
+  assert len(ds)  # pylint: disable=g-explicit-length-test
   list(ds)  # Pipeline can be executed
 
 
@@ -321,7 +321,7 @@ def test_all_flags(
     )
     if not remove_invalid_rays:
       # `len` is preserved
-      assert len(ds)  # pylint: disable=g-explicit-length-test  # pyrefly: ignore[bad-argument-type]
+      assert len(ds)  # pylint: disable=g-explicit-length-test
     list(ds.take(2))  # Pipeline can be executed
 
 

@@ -506,7 +506,7 @@ class SceneRenderer(base.BaseRenderer):
         if reference_point is not None:
           distance_v = (
               np.linalg.norm(v - np.array(reference_point)))
-          if min_distance <= distance_v <= max_distance:  # pyrefly: ignore[unsupported-operation]
+          if min_distance <= distance_v <= max_distance:
             return tuple(v)
         else:
           return tuple(v)

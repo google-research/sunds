@@ -124,7 +124,7 @@ def frames_spec(
   camera_specs = {camera_name: camera_spec for camera_name in camera_names}
   frame_spec = sunds.specs.frame_spec(cameras=camera_specs)
   # timestamp is not defined for this dataset.
-  frame_spec.pop('timestamp')  # pytype: disable=attribute-error  # gen-stub-imports
+  frame_spec.pop('timestamp')
   return frame_spec
 
 
