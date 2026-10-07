@@ -91,8 +91,8 @@ def builder(
     frame_module = f'{base_module_name}.frames_builder'
     scene_cls = tfds.core.community.builder_cls_from_module(scene_module)
     frame_cls = tfds.core.community.builder_cls_from_module(frame_module)
-    scene_builder = scene_cls(**builder_kwargs)  # pytype: disable=not-instantiable
-    frame_builder = frame_cls(**builder_kwargs)  # pytype: disable=not-instantiable
+    scene_builder = scene_cls(**builder_kwargs)
+    frame_builder = frame_cls(**builder_kwargs)
   else:
     # Otherwise, datasets not registered. `tfds.builder` will restore the
     # last dataset found in `data_dir/`

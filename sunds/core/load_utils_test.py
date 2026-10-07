@@ -92,7 +92,7 @@ def test_builder(lego_data_dir: epath.Path):  # pylint: disable=redefined-outer-
   assert 'scene_name' in ds.element_spec
   # `use_code == False`, so builder should be read-only
   assert isinstance(
-      builder.frame_builder._builder_instance,  # pytype: disable=attribute-error
+      builder.frame_builder._builder_instance,
       tfds.core.read_only_builder.ReadOnlyBuilder,
   )
 
@@ -113,7 +113,7 @@ def test_builder_frame_only(lego_builder_frame_only: sunds.core.DatasetBuilder):
   assert isinstance(ds, tf.data.Dataset)
   assert 'scene_name' in ds.element_spec
 
-  assert not builder.scene_builder.loaded  # pytype: disable=attribute-error
-  assert builder.frame_builder.loaded  # pytype: disable=attribute-error
+  assert not builder.scene_builder.loaded
+  assert builder.frame_builder.loaded
   with pytest.raises(tfds.core.DatasetNotFoundError):
     _ = builder.scene_builder.info  # Loading scene raise error

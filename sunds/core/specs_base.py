@@ -27,7 +27,7 @@ class SpecBase:
   def asdict(self) -> Dict[str, Any]:
     """Convert the dataclass to dict, recursivelly applied to childs."""
     attrs = {}
-    for field in dataclasses.fields(self):  # pytype: disable=wrong-arg-types  # re-none
+    for field in dataclasses.fields(self):  # pyrefly: ignore[bad-argument-type]
       value = getattr(self, field.name, None)
       if value is None:  # Filter None elements
         continue
@@ -50,20 +50,20 @@ class SpecBase:
 # All types defined here will be automatically serialized
 # * type: Class to serialize to dict
 # * asdict_fn: Function which serialize the object to dict/value
-_REGISTER: Dict[Type[_T], Callable[[_T], Any]] = {  # pyrefly: ignore[bad-assignment, invalid-type-var]
-    SpecBase: lambda x: x.asdict(),  # pyrefly: ignore[bad-assignment, missing-attribute]
-    datetime.datetime: lambda x: x.isoformat(),  # pytype: disable=invalid-annotation
+_REGISTER: Dict[Type[_T], Callable[[_T], Any]] = {  # pyrefly: ignore[invalid-type-var]
+    SpecBase: lambda x: x.asdict(),  # pyrefly: ignore[missing-attribute]
+    datetime.datetime: lambda x: x.isoformat(),  # pyrefly: ignore[missing-attribute]
 }
 
 
 def _isregistered(obj: Any) -> bool:
   """Returns True if the object is registered (should be serialized)."""
-  return isinstance(obj, tuple(_REGISTER.keys()))  # pyrefly: ignore[invalid-argument]
+  return isinstance(obj, tuple(_REGISTER.keys()))
 
 
 def _asdict(obj: Any) -> Any:
   """Serialize the registered object to dict."""
   for cls, asdict_fn in _REGISTER.items():
-    if isinstance(obj, cls):  # pyrefly: ignore[invalid-argument]
+    if isinstance(obj, cls):
       return asdict_fn(obj)
   raise TypeError(f'Unrecognized type: {obj}')
