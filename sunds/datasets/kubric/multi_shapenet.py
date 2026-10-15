@@ -624,7 +624,7 @@ class SceneRenderer(base.BaseRenderer):
     # normalization.
     _normalize_object_scale(obj)
     _normalize_object_position(obj)
-    assert np.all(np.abs(obj.aabbox) <= 1.0)
+    assert np.all(np.abs(obj.aabbox) <= 1.0)  # pyrefly: ignore[missing-attribute]
 
     # Get category id.
     category_id = int(obj.metadata["category_id"])
@@ -633,9 +633,9 @@ class SceneRenderer(base.BaseRenderer):
     # Note that we add +1 when building the segmentation_id. This is because
     # the background has segmentation_id = 0.
     obj.segmentation_id = categories.index(category_id) + 1
-    obj.metadata = {
-        "asset_id": obj.asset_id,
-        "category": obj.segmentation_id,
+    obj.metadata = {  # pyrefly: ignore[bad-assignment]
+        "asset_id": obj.asset_id,  # pyrefly: ignore[missing-attribute]
+        "category": obj.segmentation_id,  # pyrefly: ignore[missing-attribute]
     }
     self._scene.add(obj)
 
@@ -657,15 +657,15 @@ class SceneRenderer(base.BaseRenderer):
             self._config.object_placement_sampling_strategy
         )
     except RuntimeError as e:
-      logging.info("    Failed to place asset=%s", obj.asset_id)
+      logging.info("    Failed to place asset=%s", obj.asset_id)  # pyrefly: ignore[missing-attribute]
       if e.args[0] == "Failed to place":
         self._scene.remove(obj)
       raise e
 
     logging.info(
         "    Succesfully placed asset=%s at position=%s",
-        obj.asset_id,
-        obj.position,
+        obj.asset_id,  # pyrefly: ignore[missing-attribute]
+        obj.position,  # pyrefly: ignore[missing-attribute]
     )
     return obj
 
@@ -781,9 +781,9 @@ class SceneRenderer(base.BaseRenderer):
       )
 
       # Use HDRI for lighting.
-      self._renderer._set_ambient_light_hdri(background_hdri.filename)  # pylint: disable=protected-access
+      self._renderer._set_ambient_light_hdri(background_hdri.filename)  # pylint: disable=protected-access  # pyrefly: ignore[missing-attribute]
 
-      return kb.as_path(background_hdri.filename).stem
+      return kb.as_path(background_hdri.filename).stem  # pyrefly: ignore[missing-attribute]
 
     elif (
         self._config.background_sampling_strategy
