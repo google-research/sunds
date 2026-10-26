@@ -627,7 +627,7 @@ class SceneRenderer(base.BaseRenderer):
     assert np.all(np.abs(obj.aabbox) <= 1.0)  # pyrefly: ignore[missing-attribute]
 
     # Get category id.
-    category_id = int(obj.metadata["category_id"])
+    category_id = int(obj.metadata["category_id"])  # pyrefly: ignore[bad-index]
     categories = self._segmentation_ids()
 
     # Note that we add +1 when building the segmentation_id. This is because
