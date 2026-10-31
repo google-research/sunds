@@ -39,7 +39,7 @@ sunds.load('nerf_synthetic/lego', data_dir='gs://kubric-public/tfds')
 ```
 
 For best performance, it's recommended to copy the data locally with
-[gsutil](https://cloud.google.com/storage/docs/gsutil_install):
+[gcloud](https://cloud.google.com/sdk/gcloud/reference/storage):
 
 ```sh
 pip install gsutil  # Only once
